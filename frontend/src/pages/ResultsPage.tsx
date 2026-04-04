@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
-import { fetchClinics, type Clinic } from '../lib/api';
+import { fetchClinics, fetchInsuranceTiers, type Clinic, type InsuranceTier } from '../lib/api';
 
 export default function ResultsPage() {
   const [searchParams] = useSearchParams();
@@ -20,6 +20,11 @@ export default function ResultsPage() {
   const [distance, setDistance] = useState(25);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  // Insurance state
+  const [insuranceOpen, setInsuranceOpen] = useState(false);
+  const [insuranceTiers, setInsuranceTiers] = useState<InsuranceTier[]>([]);
+  const [selectedTier, setSelectedTier] = useState<InsuranceTier | null>(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -35,6 +40,15 @@ export default function ResultsPage() {
       })
       .finally(() => setLoading(false));
   }, [q, priority, lat, lng]);
+
+  // Fetch insurance tiers when panel opens
+  useEffect(() => {
+    if (!insuranceOpen || insuranceTiers.length > 0) return;
+    const state = zip ? undefined : undefined; // could extract state from zip in future
+    fetchInsuranceTiers(state)
+      .then(data => setInsuranceTiers(data.tiers))
+      .catch(() => {}); // silently fail
+  }, [insuranceOpen]);
 
   const clinics = useMemo(
     () => allClinics.filter(c => (c.distanceMiles ?? 0) <= distance),
@@ -91,11 +105,54 @@ export default function ResultsPage() {
           max={25}
           display={`Up to ${distance} mi`}
         />
+
+        {/* Insurance filter */}
         <div>
           <p className="text-white/50 text-xs mb-2">Insurance</p>
-          <button className="text-teal-400 text-xs flex items-center gap-1 hover:text-teal-300">
-            + Use Insurance
-          </button>
+          {selectedTier ? (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-teal-400 text-xs font-medium">{selectedTier.label}</span>
+                <button
+                  onClick={() => setSelectedTier(null)}
+                  className="text-white/30 text-xs hover:text-white/60 transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+              <p className="text-white/40 text-xs">{selectedTier.coveragePct}% coverage</p>
+              <p className="text-white/40 text-xs">~${selectedTier.avgPremium}/mo</p>
+            </div>
+          ) : (
+            <button
+              onClick={() => setInsuranceOpen(o => !o)}
+              className="text-teal-400 text-xs flex items-center gap-1 hover:text-teal-300 transition-colors"
+            >
+              {insuranceOpen ? '− Hide plans' : '+ Use Insurance'}
+            </button>
+          )}
+
+          {insuranceOpen && !selectedTier && (
+            <div className="mt-3 space-y-2">
+              {insuranceTiers.length === 0 ? (
+                <div className="text-white/30 text-xs">Loading...</div>
+              ) : (
+                insuranceTiers.map(tier => (
+                  <button
+                    key={tier.tier}
+                    onClick={() => { setSelectedTier(tier); setInsuranceOpen(false); }}
+                    className="w-full text-left glass-card p-2.5 hover:border-teal-500/30 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-white text-xs font-medium">{tier.label}</span>
+                      <span className="text-teal-400 text-xs">{tier.coveragePct}%</span>
+                    </div>
+                    <p className="text-white/40 text-xs">~${tier.avgPremium}/mo</p>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </aside>
 
@@ -105,9 +162,16 @@ export default function ResultsPage() {
           <h2 className="text-xl font-semibold text-white">
             Results for: {q || 'All care'}{zip ? ` near ${zip}` : ''}
           </h2>
-          <p className="text-white/40 text-sm mt-0.5">
-            Recommended care: <span className="text-teal-400">Physical Therapy</span> · Based on patient recovery data
-          </p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <p className="text-white/40 text-sm">
+              Recommended care: <span className="text-teal-400">{q || 'Primary Care'}</span> · Based on patient recovery data
+            </p>
+            {selectedTier && (
+              <span className="text-xs bg-teal-500/10 border border-teal-500/20 text-teal-400 px-2 py-0.5 rounded-full">
+                {selectedTier.label} · {selectedTier.coveragePct}% covered
+              </span>
+            )}
+          </div>
         </div>
 
         {loading && (
@@ -155,6 +219,7 @@ export default function ResultsPage() {
               clinic={topClinic}
               isComparing={comparing.includes(topClinic.id)}
               onToggleCompare={() => toggleCompare(topClinic.id)}
+              insuranceTier={selectedTier}
             />
 
             {/* Other clinics */}
@@ -167,6 +232,7 @@ export default function ResultsPage() {
                     isComparing={comparing.includes(clinic.id)}
                     onToggleCompare={() => toggleCompare(clinic.id)}
                     onViewDetails={() => navigate(`/compare?ids=${topClinic.id},${clinic.id}`)}
+                    insuranceTier={selectedTier}
                   />
                 ))}
               </div>
@@ -206,6 +272,14 @@ export default function ResultsPage() {
   );
 }
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+/** Adjusted cost after insurance coverage */
+function withInsurance(cost: number, tier: InsuranceTier | null): number {
+  if (!tier) return cost;
+  return Math.round(cost * (1 - tier.coveragePct / 100));
+}
+
 function FilterSlider({ label, value, onChange, min, max, display }: {
   label: string;
   value: number;
@@ -230,12 +304,16 @@ function FilterSlider({ label, value, onChange, min, max, display }: {
   );
 }
 
-function ExpandedClinicCard({ clinic, isComparing, onToggleCompare }: {
+function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTier }: {
   clinic: Clinic;
   isComparing: boolean;
   onToggleCompare: () => void;
+  insuranceTier: InsuranceTier | null;
 }) {
-  const isBestValue = clinic.badges.bestValue;
+  const fullCost = clinic.totalCostEstimate;
+  const adjCost = withInsurance(fullCost, insuranceTier);
+  const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier);
+
   return (
     <div className="glass-card p-4 md:p-5">
       <div className="flex items-center justify-between mb-4">
@@ -246,7 +324,7 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare }: {
             </svg>
           </div>
           <span className="text-white font-semibold text-sm sm:text-base">{clinic.name}</span>
-          {isBestValue && <span className="badge-teal">Best Value</span>}
+          {clinic.badges.bestValue && <span className="badge-teal">Best Value</span>}
         </div>
         <span className="text-white/40 text-sm shrink-0 ml-2">
           {clinic.distanceMiles != null ? `${clinic.distanceMiles} mi` : '—'}
@@ -258,13 +336,26 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare }: {
         <Stat label="Recovery" value={clinic.recoverySpeed} />
         <Stat label="Outcome" value={clinic.outcomeQuality} />
         <Stat label="Burden" value={clinic.treatmentBurden} badge />
-        <Stat label="Est. Cost" value={`~$${clinic.totalCostEstimate.toLocaleString()}`} />
+        <div>
+          <p className="text-white/40 text-xs mb-1">Est. Cost</p>
+          {insuranceTier ? (
+            <>
+              <p className="font-semibold text-teal-400 text-sm">~${adjCost.toLocaleString()}</p>
+              <p className="text-white/30 text-xs line-through">~${fullCost.toLocaleString()}</p>
+            </>
+          ) : (
+            <p className="font-semibold text-white text-sm">~${fullCost.toLocaleString()}</p>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-3 border-t border-white/5 gap-3">
         <p className="text-white/40 text-xs sm:text-sm">{clinic.patientSummary}</p>
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-          <span className="text-white/50 text-sm">${clinic.perVisitCost}/visit</span>
+          <span className="text-white/50 text-sm">
+            ${adjPerVisit}/visit
+            {insuranceTier && <span className="text-white/30 text-xs ml-1">(w/ ins.)</span>}
+          </span>
           <button
             onClick={onToggleCompare}
             className={`text-sm px-4 py-1.5 rounded-lg border transition-colors ${
@@ -279,12 +370,15 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare }: {
   );
 }
 
-function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails }: {
+function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails, insuranceTier }: {
   clinic: Clinic;
   isComparing: boolean;
   onToggleCompare: () => void;
   onViewDetails: () => void;
+  insuranceTier: InsuranceTier | null;
 }) {
+  const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier);
+
   return (
     <div className="glass-card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -307,7 +401,12 @@ function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails
         </div>
         <div className="flex items-center justify-between">
           <span className="text-white/50 text-xs">Per Visit</span>
-          <span className="text-white text-xs">${clinic.perVisitCost}/visit</span>
+          <span className="text-white text-xs">
+            ${adjPerVisit}/visit
+            {insuranceTier && clinic.perVisitCost !== adjPerVisit && (
+              <span className="text-white/30 line-through ml-1">${clinic.perVisitCost}</span>
+            )}
+          </span>
         </div>
       </div>
       <p className="text-white/30 text-xs mt-3 line-clamp-2">{clinic.patientSummary}</p>

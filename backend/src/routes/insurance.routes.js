@@ -33,5 +33,6 @@ const router = Router();
  */
 
 router.get('/', asyncHandler(insuranceController.list));
+router.get('/states', asyncHandler(insuranceController.states));
 
 export default router;

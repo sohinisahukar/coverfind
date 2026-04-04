@@ -80,6 +80,22 @@ export async function fetchRecommendations(): Promise<{ specialty: string; condi
   return apiFetch(`${BASE}/api/clinics/recommendations`);
 }
 
+export interface InsuranceTier {
+  tier: 'bronze' | 'silver' | 'gold' | 'premium';
+  label: string;
+  coveragePct: number;
+  color: string;
+  planCount: number;
+  avgPremium: number;
+  avgDeductible: number | null;
+  avgOopMax: number | null;
+}
+
+export async function fetchInsuranceTiers(state?: string): Promise<{ state: string | null; tiers: InsuranceTier[] }> {
+  const qs = state ? `?state=${state}` : '';
+  return apiFetch(`${BASE}/api/insurance${qs}`);
+}
+
 export async function zipToCoords(zip: string): Promise<{ lat: number; lng: number } | null> {
   if (!/^\d{5}$/.test(zip.trim())) return null;
   try {
