@@ -4,6 +4,7 @@ import cors from 'cors';
 import clinicsRoutes from './src/routes/clinics.routes.js';
 import insuranceRoutes from './src/routes/insurance.routes.js';
 import cardsRoutes from './src/routes/cards.routes.js';
+import { errorHandler } from './src/middleware/errorHandler.js';
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,8 @@ app.get('/api/health', (req, res) => {
 app.use('/api/clinics', clinicsRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/cards', cardsRoutes);
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT ?? 3001;
 app.listen(PORT, () => {
