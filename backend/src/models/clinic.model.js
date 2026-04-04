@@ -1,7 +1,9 @@
 import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
 import path from 'path';
 
-const DB_PATH = path.resolve('/Users/whoseunassailable/Documents/careculator.db');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DB_PATH = path.resolve(__dirname, '../../data/careculator.db');
 
 let _db = null;
 function db() {
