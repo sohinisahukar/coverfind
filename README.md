@@ -1,201 +1,153 @@
-"We don’t just tell you where to go for care—we tell you where to go _based on what you can afford and what minimizes your financial risk_.”
+# CoverFind
 
-# 🧠 The Problem (THIS SELLS YOUR PROJECT)
+> "We don't just tell you where to go for care — we tell you where to go _based on what you can afford and what minimizes your financial risk_."
 
-Right now:
-
-- People don’t know:
-
-  - where to go ❓
-  - how much it will cost 💸
-
-- A bad decision can mean:
-
-  - thousands in unexpected bills
-
-- Tools like Zocdoc help book appointments
-  ❌ BUT they don’t consider cost + insurance + urgency together
-
-# 💥 Your Solution (what we build)
-
-## 1. ⚡ Smart Care + Cost Matching
-
-User inputs:
-
-- symptoms (“stomach pain”)
-- location
-- insurance (optional)
-
-👉 Output:
-
-- **Best place to go**
-- **Estimated total cost**
-- **Wait time**
-- **Financial risk level**
+CoverFind is a smart healthcare cost and care matching tool. Users input their symptoms, location, and insurance (optional) and get ranked clinic recommendations with estimated costs, recovery scores, and financial risk breakdowns.
 
 ---
 
-## 2. 🤖 AI “Financial + Medical Brain” (your wow factor)
+## The Problem
 
-User asks:
+- People don't know where to go for care or how much it will cost
+- A bad decision can mean thousands in unexpected bills
+- Tools like Zocdoc help book appointments — but don't consider cost + insurance + urgency together
 
-> “Should I go to ER or urgent care?”
+## The Solution
 
-👉 App responds:
-
-- “Urgent care is sufficient ✅”
-- “ER will cost ~$2,500 more ❌”
-
-This is 🔥 because:
-👉 You’re combining **medical triage + financial intelligence**
+- **Smart Care + Cost Matching** — ranked clinic results with total cost estimates and recovery scores
+- **AI Financial + Medical Brain** — "Should I go to ER or urgent care?" answered with cost context
+- **Real Cost Breakdown** — insurance coverage estimate, out-of-pocket cost, worst-case scenario
+- **Financial Shock Alert** — warns when a choice costs 5x more than necessary
+- **What-if Simulator** — instant recalculation if insurance status changes
 
 ---
 
-## 3. 💸 “Real Cost Breakdown” (judges LOVE this)
+## Local Development
 
-For each option:
+### Prerequisites
 
-- Insurance coverage estimate
-- Out-of-pocket cost
-- Worst-case scenario
+- Node.js 18+
+- npm
 
-Example:
+### Running the full stack
 
+From the project root:
+
+```bash
+npm install      # installs concurrently (one-time)
+npm run dev      # starts backend + frontend together
 ```
-Urgent Care:
-✔ Estimated: $120
-✔ Wait: 20 min
 
-ER:
-❌ Estimated: $2,300
-❌ Wait: 2 hrs
+| Service       | URL                              |
+| ------------- | -------------------------------- |
+| Frontend      | http://localhost:5173            |
+| Backend API   | http://localhost:3001            |
+| Swagger UI    | http://localhost:3001/api/docs   |
+| OpenAPI JSON  | http://localhost:3001/api/docs.json |
+
+The Vite dev server proxies all `/api` requests to the backend automatically — no CORS issues during development.
+
+### Running individually
+
+```bash
+# Backend only
+cd backend && npm run dev
+
+# Frontend only
+cd frontend && npm run dev
 ```
 
 ---
 
-## 4. 🚨 “Financial Shock Alert” (killer feature)
+## API Documentation
 
-If user picks a bad option:
+Interactive Swagger UI is available at **http://localhost:3001/api/docs** when the backend is running.
 
-> ⚠️ “This choice may cost 5x more than necessary”
+The raw OpenAPI spec (importable into Postman or Insomnia) is at **http://localhost:3001/api/docs.json**.
 
-👉 This creates a **strong emotional demo moment**
+### Endpoints
 
----
+| Method | Path                         | Description                                  |
+| ------ | ---------------------------- | -------------------------------------------- |
+| GET    | `/api/health`                | Health check                                 |
+| GET    | `/api/clinics`               | Search clinics (alias for `/api/clinics/search`) |
+| GET    | `/api/clinics/search`        | Search by condition, location, and preferences |
+| GET    | `/api/clinics/recommendations` | Infer specialty + quick-search tag presets |
+| GET    | `/api/clinics/compare`       | Compare clinics side-by-side                 |
+| POST   | `/api/clinics/compare`       | Compare clinics side-by-side (body payload)  |
+| GET    | `/api/clinics/:id`           | Get a single clinic by ID                    |
+| GET    | `/api/insurance`             | List supported insurance plans               |
+| POST   | `/api/cards`                 | Upload and parse an insurance card           |
 
-## 5. 🧮 “What-if Simulator”
-
-User clicks:
-
-> “What if I don’t have insurance?”
-
-👉 Instantly shows:
-
-- cost explosion
-- alternative options
-
----
-
-# 🏆 Why This Idea is ELITE
-
-This hits EVERYTHING judges want:
-
-✅ Healthcare impact
-✅ Financial intelligence
-✅ AI usage
-✅ Clear differentiation
-✅ Strong storytelling
-
-👉 Most teams will do:
-
-- healthcare OR finance
-  👉 You’re doing:
-- **decision-making across both**
-
-That’s rare.
+To add docs for a new endpoint, add a `@swagger` JSDoc comment to its route file — the spec updates automatically on the next server start.
 
 ---
 
-# 🎬 PERFECT DEMO FLOW (copy this)
+## Project Structure
 
-1. “Imagine you wake up with chest pain…”
-2. Enter symptom
-3. Show:
-
-   - ER vs urgent care
-
-4. Highlight:
-
-   - cost difference 💸
-   - wait time ⏱️
-
-5. Ask:
-
-   > “What if I don’t have insurance?”
-
-6. Show dramatic cost jump
-
-👉 Judges will literally go: “oh wow”
-
----
-
-# ⚙️ What You Actually Build (keep it simple)
-
-You don’t need real APIs.
-
-### Fake/simulate:
-
-- cost data → static JSON
-- insurance → simple rules
-- AI → OpenAI prompt
-
----
-
-# 🔥 Bonus Twist (to WIN WIN)
-
-Add this line in your pitch:
-
-> “We also highlight healthcare inequality by showing how costs vary by ZIP code.”
-
-Now you’ve hit:
-
-- social impact
-- data storytelling
-
----
-
-# 🧠 Project Name Ideas (important!)
-
-Pick something clean:
-
-- CareWise
-- MedRoute
-- HealthCost AI
-- CareMap
-- PulsePlan
-
----
-
-# 💬 My Honest Advice
-
-If your team builds this well:
-
-👉 This is **stronger than 90% of hackathon projects**
-
-Because:
-
-- it’s emotional
-- it’s practical
-- it’s instantly understandable
+```
+coverfind/
+├── package.json              # Root — runs both services via concurrently
+│
+├── backend/
+│   ├── index.js              # Express app entry point + Swagger UI mount
+│   ├── package.json
+│   └── src/
+│       ├── swagger.js        # OpenAPI spec config (swagger-jsdoc)
+│       ├── config/
+│       │   └── index.js
+│       ├── controllers/
+│       │   ├── clinics.controller.js
+│       │   ├── insurance.controller.js
+│       │   └── cards.controller.js
+│       ├── middleware/
+│       │   ├── errorHandler.js
+│       │   └── validateRequest.js
+│       ├── models/
+│       │   ├── clinic.model.js
+│       │   └── provider.model.js
+│       ├── routes/           # @swagger annotations live here
+│       │   ├── clinics.routes.js
+│       │   ├── insurance.routes.js
+│       │   └── cards.routes.js
+│       ├── services/
+│       │   ├── dataLayer.service.js
+│       │   ├── hrsa.service.js
+│       │   ├── insurance.service.js
+│       │   └── npi.service.js
+│       └── utils/
+│           ├── csvLoader.js
+│           └── haversine.js
+│
+├── frontend/
+│   ├── index.html
+│   ├── vite.config.ts        # Vite + /api proxy to localhost:3001
+│   ├── tsconfig.json
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   ├── package.json
+│   └── src/
+│       ├── main.tsx          # React entry point
+│       ├── App.tsx
+│       ├── index.css         # Tailwind base styles
+│       ├── vite-env.d.ts
+│       └── components/
+│           ├── SearchForm.tsx
+│           ├── ResultsList.tsx
+│           ├── ClinicCard.tsx
+│           └── MapView.tsx
+│
+└── models/
+    └── pre-processing.ipynb  # Data pre-processing notebook
+```
 
 ---
 
-└── src
-├── config
-├── controllers
-├── middleware
-├── models
-├── routes
-├── services
-└── utils
-mkdir -p my-new-project/src/{middleware,config,utils,models,controllers,routes,services}
+## Tech Stack
+
+| Layer     | Technology                                      |
+| --------- | ----------------------------------------------- |
+| Frontend  | React 18, TypeScript, Vite, Tailwind CSS        |
+| Backend   | Node.js, Express, ES Modules                    |
+| API Docs  | swagger-jsdoc, swagger-ui-express (OpenAPI 3.0) |
+| Dev Tools | concurrently, node --watch                      |
