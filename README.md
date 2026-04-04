@@ -1,8 +1,8 @@
-# CoverFind
+# Careculator
 
 > "We don't just tell you where to go for care — we tell you where to go _based on what you can afford and what minimizes your financial risk_."
 
-CoverFind is a smart healthcare cost and care matching tool. Users input their symptoms, location, and insurance (optional) and get ranked clinic recommendations with estimated costs, recovery scores, and financial risk breakdowns.
+Careculator is a smart healthcare cost and care matching tool. Users input their symptoms, location, and insurance (optional) and get ranked clinic recommendations with estimated costs, recovery scores, and financial risk breakdowns.
 
 ---
 

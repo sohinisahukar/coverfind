@@ -4,9 +4,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'CoverFind API',
+      title: 'Careculator API',
       version: '1.0.0',
-      description: 'API documentation for the CoverFind backend',
+      description: 'API documentation for the Careculator backend',
     },
     servers: [
       { url: 'http://localhost:3001', description: 'Local dev server' },
