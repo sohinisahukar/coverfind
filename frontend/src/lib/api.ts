@@ -26,6 +26,8 @@ export interface Clinic {
     newInsurance: boolean;
   };
   distanceMiles?: number;
+  website?: string;
+  phone?: string;
 }
 
 async function apiFetch<T>(url: string): Promise<T> {
@@ -57,15 +59,37 @@ export async function fetchClinics(params: {
   priorityWeight?: number;
   maxDistanceMi?: number;
   treatmentBurden?: string;
+  lat?: number;
+  lng?: number;
 }): Promise<Clinic[]> {
   const qs = new URLSearchParams();
   if (params.q) qs.set('q', params.q);
   if (params.priorityWeight !== undefined) qs.set('priorityWeight', String(params.priorityWeight));
   if (params.maxDistanceMi !== undefined) qs.set('maxDistanceMi', String(params.maxDistanceMi));
   if (params.treatmentBurden) qs.set('treatmentBurden', params.treatmentBurden);
+  if (params.lat !== undefined) qs.set('lat', String(params.lat));
+  if (params.lng !== undefined) qs.set('lng', String(params.lng));
   return apiFetch<Clinic[]>(`${BASE}/api/clinics/search?${qs}`);
 }
 
 export async function fetchCompare(ids: string[]): Promise<Clinic[]> {
   return apiFetch<Clinic[]>(`${BASE}/api/clinics/compare?ids=${ids.join(',')}`);
+}
+
+export async function fetchRecommendations(): Promise<{ specialty: string; condition: string; quickTags: string[] }> {
+  return apiFetch(`${BASE}/api/clinics/recommendations`);
+}
+
+export async function zipToCoords(zip: string): Promise<{ lat: number; lng: number } | null> {
+  if (!/^\d{5}$/.test(zip.trim())) return null;
+  try {
+    const res = await fetch(`https://api.zippopotam.us/us/${zip.trim()}`);
+    if (!res.ok) return null;
+    const data = await res.json() as { places: Array<{ latitude: string; longitude: string }> };
+    const place = data.places?.[0];
+    if (!place) return null;
+    return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
+  } catch {
+    return null;
+  }
 }

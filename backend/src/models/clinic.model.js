@@ -45,6 +45,8 @@ function mapRow(row) {
     recoveryScore: row.recovery_score,
     costScore: row.cost_score,
     badges,
+    website: row.website || undefined,
+    phone: row.phone || undefined,
   };
 }
 

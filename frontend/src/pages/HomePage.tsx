@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { fetchRecommendations, zipToCoords } from '../lib/api';
 
-const QUICK_TAGS = ['Physical Therapy', 'Dental Cleaning', 'Skin Rash', 'Urgent Care'];
+const FALLBACK_TAGS = ['Primary Care', 'Dental', 'Urgent Care', 'Behavioral Health'];
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -9,14 +10,32 @@ export default function HomePage() {
   const [location, setLocation] = useState('');
   const [outOfPocket, setOutOfPocket] = useState(true);
   const [priority, setPriority] = useState(50);
+  const [quickTags, setQuickTags] = useState<string[]>(FALLBACK_TAGS);
 
-  const handleSearch = () => {
-    navigate(`/results?q=${encodeURIComponent(query)}&zip=${encodeURIComponent(location)}&priority=${priority}`);
+  useEffect(() => {
+    fetchRecommendations()
+      .then(data => { if (data.quickTags?.length) setQuickTags(data.quickTags); })
+      .catch(() => {}); // silently use fallback
+  }, []);
+
+  const handleSearch = async (searchQuery = query) => {
+    const qs = new URLSearchParams({
+      q: searchQuery,
+      zip: location,
+      priority: String(priority),
+    });
+    if (location.trim()) {
+      const coords = await zipToCoords(location);
+      if (coords) {
+        qs.set('lat', String(coords.lat));
+        qs.set('lng', String(coords.lng));
+      }
+    }
+    navigate(`/results?${qs}`);
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-72px)] px-4 py-10 text-center">
-      {/* Headline */}
       <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-3 max-w-2xl leading-tight">
         Find care that's right for you.
       </h1>
@@ -24,9 +43,7 @@ export default function HomePage() {
         Get recommendations based on real patient experiences — not just distance or cost.
       </p>
 
-      {/* Search card */}
       <div className="glass-card w-full max-w-3xl p-4 sm:p-6 space-y-4 sm:space-y-5">
-        {/* Inputs — stack on mobile, row on sm+ */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <input
@@ -44,9 +61,10 @@ export default function HomePage() {
           <div className="relative sm:w-60 lg:w-64">
             <input
               type="text"
-              placeholder="Location or ZIP code"
+              placeholder="ZIP code (e.g. 60616)"
               value={location}
               onChange={e => setLocation(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
               className="input-dark pr-10"
             />
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30">
@@ -56,9 +74,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Options */}
         <div className="space-y-3 sm:space-y-4">
-          {/* Checkbox */}
           <label className="flex items-center justify-center gap-2 cursor-pointer">
             <div
               onClick={() => setOutOfPocket(!outOfPocket)}
@@ -75,7 +91,6 @@ export default function HomePage() {
             <span className="text-white/70 text-sm">Consider out-of-pocket cost</span>
           </label>
 
-          {/* Priority slider */}
           <div className="flex items-center gap-2 sm:gap-4">
             <span className="text-white/50 text-xs sm:text-sm w-24 sm:w-32 text-right shrink-0">Faster Recovery</span>
             <input
@@ -90,18 +105,16 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* CTA */}
-        <button onClick={handleSearch} className="w-full btn-primary py-3 sm:py-4 text-base rounded-xl">
+        <button onClick={() => handleSearch()} className="w-full btn-primary py-3 sm:py-4 text-base rounded-xl">
           Find Best Care
         </button>
       </div>
 
-      {/* Quick tags */}
       <div className="flex items-center gap-2 sm:gap-3 mt-6 sm:mt-8 flex-wrap justify-center px-2">
-        {QUICK_TAGS.map(tag => (
+        {quickTags.map(tag => (
           <button
             key={tag}
-            onClick={() => { setQuery(tag); navigate(`/results?q=${encodeURIComponent(tag)}&zip=${encodeURIComponent(location)}&priority=${priority}`); }}
+            onClick={() => handleSearch(tag)}
             className="border border-white/15 text-white/60 text-xs sm:text-sm px-4 sm:px-5 py-1.5 sm:py-2 rounded-full hover:border-teal-500/40 hover:text-white transition-colors"
           >
             {tag}

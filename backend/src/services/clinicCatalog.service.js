@@ -40,8 +40,8 @@ export function searchClinics(query = {}) {
   } = query;
 
   const weight = priorityWeight !== undefined ? Number(priorityWeight) : 50;
-  const centerLat = DEFAULT_LAT;
-  const centerLng = DEFAULT_LNG;
+  const centerLat = query.lat ? Number(query.lat) : DEFAULT_LAT;
+  const centerLng = query.lng ? Number(query.lng) : DEFAULT_LNG;
 
   let clinics = searchClinicsByKeyword(q);
 

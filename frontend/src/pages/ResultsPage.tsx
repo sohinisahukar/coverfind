@@ -8,8 +8,10 @@ export default function ResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const q = searchParams.get('q') || '';
-  const zip = searchParams.get('zip') || '60616';
+  const zip = searchParams.get('zip') || '';
   const priority = Number(searchParams.get('priority') ?? 50);
+  const lat = searchParams.get('lat') ? Number(searchParams.get('lat')) : undefined;
+  const lng = searchParams.get('lng') ? Number(searchParams.get('lng')) : undefined;
 
   const [allClinics, setAllClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +23,7 @@ export default function ResultsPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchClinics({ q, priorityWeight: priority })
+    fetchClinics({ q, priorityWeight: priority, lat, lng })
       .then(data => {
         setAllClinics(data);
         if (data.length > 0) setComparing([data[0].id]);
@@ -32,7 +34,7 @@ export default function ResultsPage() {
         toast.error(msg, { duration: 6000 });
       })
       .finally(() => setLoading(false));
-  }, [q, priority]);
+  }, [q, priority, lat, lng]);
 
   const clinics = useMemo(
     () => allClinics.filter(c => (c.distanceMiles ?? 0) <= distance),
@@ -53,7 +55,7 @@ export default function ResultsPage() {
       {/* Mobile filter toggle */}
       <div className="md:hidden flex items-center justify-between px-4 py-2 border-b border-white/5">
         <span className="text-white/60 text-sm font-medium">
-          Results for: {q || 'All'} near {zip}
+          Results for: {q || 'All'}{zip ? ` near ${zip}` : ''}
         </span>
         <button
           onClick={() => setFiltersOpen(o => !o)}
@@ -101,7 +103,7 @@ export default function ResultsPage() {
       <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 pb-24 space-y-4 min-w-0">
         <div className="hidden md:block">
           <h2 className="text-xl font-semibold text-white">
-            Results for: {q || 'All care'} near {zip}
+            Results for: {q || 'All care'}{zip ? ` near ${zip}` : ''}
           </h2>
           <p className="text-white/40 text-sm mt-0.5">
             Recommended care: <span className="text-teal-400">Physical Therapy</span> · Based on patient recovery data
