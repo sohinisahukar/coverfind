@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
 import { fetchClinics, type Clinic } from '../lib/api';
 
@@ -25,7 +26,11 @@ export default function ResultsPage() {
         setAllClinics(data);
         if (data.length > 0) setComparing([data[0].id]);
       })
-      .catch(err => setError((err as Error).message))
+      .catch(err => {
+        const msg = (err as Error).message;
+        setError(msg);
+        toast.error(msg, { duration: 6000 });
+      })
       .finally(() => setLoading(false));
   }, [q, priority]);
 
@@ -228,7 +233,7 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare }: {
   isComparing: boolean;
   onToggleCompare: () => void;
 }) {
-  const isBestValue = clinic.badges.includes('best-value');
+  const isBestValue = clinic.badges.bestValue;
   return (
     <div className="glass-card p-4 md:p-5">
       <div className="flex items-center justify-between mb-4">
