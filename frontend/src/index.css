@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#07101f] text-white antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-[#0d1e35]/80 backdrop-blur-md border border-white/10 rounded-2xl;
+  }
+  .badge-green {
+    @apply bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full px-3 py-0.5 text-sm font-medium;
+  }
+  .badge-red {
+    @apply bg-red-500/20 text-red-400 border border-red-500/30 rounded-full px-3 py-0.5 text-sm font-medium;
+  }
+  .badge-amber {
+    @apply bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-3 py-0.5 text-sm font-medium;
+  }
+  .badge-teal {
+    @apply bg-teal-500/20 text-teal-300 border border-teal-500/30 rounded-full px-3 py-0.5 text-sm font-medium;
+  }
+  .btn-primary {
+    @apply bg-gradient-to-r from-teal-500 to-blue-600 text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity;
+  }
+  .btn-ghost {
+    @apply border border-white/20 text-white font-semibold rounded-xl px-6 py-3 hover:bg-white/5 transition-colors;
+  }
+  .input-dark {
+    @apply bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-teal-500/50 transition-colors w-full;
+  }
+  .row-divider {
+    @apply flex items-center justify-between py-3 border-b border-white/5 last:border-0;
+  }
+}

@@ -1,5 +1,6 @@
-// placeholder
 import { Router } from 'express';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import * as insuranceController from '../controllers/insurance.controller.js';
 
 const router = Router();
 
@@ -30,5 +31,7 @@ const router = Router();
  *                   name: { type: string }
  *                   type: { type: string }
  */
+
+router.get('/', asyncHandler(insuranceController.list));
 
 export default router;
