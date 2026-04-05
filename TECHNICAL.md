@@ -586,8 +586,7 @@ Returns 404 if the ZIP has no clinics in the database.
 
 ```
 App
-├── MedMotifBackground          # Animated pill/capsule canvas background
-│   └── MedMotifField           # Canvas rendering engine (parallax layers)
+├── AmbientBackground           # Full-viewport mesh gradients + subtle grid (theme-aware)
 ├── Navbar                      # Logo + theme toggle + mobile hamburger
 ├── <Routes>
 │   ├── HomePage
@@ -699,13 +698,15 @@ The `StatusBadge` component maps status strings to colours:
 
 **Important caveat:** `high` = red makes sense for burden (high burden = bad) but is wrong for outcome quality (high outcome = good). The `ComparePage` uses a separate `OutcomeQualityBadge` component that inverts the mapping: `high` = green, `low` = red.
 
-### Animated Background (MedMotifField.tsx)
+### Ambient background (AmbientBackground.tsx)
 
-Canvas-based animation rendering pill-shaped motifs (capsules, tablets, spheres):
-- **3 depth layers** with different opacity, scale, and drift speeds
-- **Mouse-reactive** — motifs push away from cursor with spring physics
-- **Theme-aware** — separate color palettes for light/dark modes
-- **Performance** — uses `requestAnimationFrame`, capped delta time, `ResizeObserver` for responsive canvas sizing
+CSS-only full-viewport layer (no canvas):
+- **Rotating conic wash** — very slow full rotation (~95s) for continuous color drift (similar energy to bold editorial sites like [UXguy.io](https://uxguy.io/))
+- **Mesh orbs** — layered blurred blobs with `aurora-a` / `aurora-b` / `aurora-c` drift at staggered durations
+- **Sheen band** — low-opacity horizontal gradient with slow horizontal `sheen-x` motion
+- **Radial pulse** — gentle opacity breathing on a top glow (`ambient-pulse`)
+- **Grid overlay** — `grid-drift` animates `background-position` for a slow crawl (`motion-safe` only where noted)
+- **Vignette** — static radial frame; **theme-aware** light/dark bases aligned with `body` backgrounds
 
 ---
 

@@ -2,10 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Brand gradient — “verdigris → iris → cassis” (light) / “aurora mint → violet → coral” (dark).
+ * Single angle + CSS variables keep text, buttons, and orbs aligned in both themes.
+ */
 @layer base {
+  :root {
+    --cf-brand-a: #0b5d4c;
+    --cf-brand-b: #4338ca;
+    --cf-brand-c: #9d174d;
+    --cf-brand-angle: 106deg;
+    --cf-accent-text: #0b5d4c;
+  }
+
+  .dark {
+    --cf-brand-a: #5eead4;
+    --cf-brand-b: #a78bfa;
+    --cf-brand-c: #fb923c;
+    --cf-accent-text: #7ff5e1;
+  }
+
   body {
-    @apply bg-slate-100 text-slate-900 antialiased dark:bg-[#0b1014] dark:text-slate-100;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply bg-[#f7f6f3] text-slate-900 antialiased dark:bg-[#06080d] dark:text-slate-100;
+    font-family: theme('fontFamily.sans');
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-sans;
+  }
+
+  /* Taller, calmer headings (avoid “pressed” uppercase blocks) */
+  h1 {
+    line-height: 1.28;
+  }
+  h2 {
+    line-height: 1.32;
+  }
+  h3 {
+    line-height: 1.38;
+  }
+  @media (min-width: 640px) {
+    h1 {
+      line-height: 1.24;
+    }
+    h2 {
+      line-height: 1.3;
+    }
   }
 }
 
@@ -24,8 +68,14 @@
   }
 
   .glass-card {
-    @apply bg-white/80 backdrop-blur-md border border-slate-200/90 shadow-sm shadow-slate-200/40 rounded-2xl
-      dark:bg-slate-900/80 dark:border-slate-600/50 dark:shadow-black/40;
+    @apply rounded-2xl border border-slate-200/80 bg-white/85 shadow-md shadow-slate-300/25 backdrop-blur-xl
+      transition-[box-shadow,transform,border-color] duration-300 ease-out
+      dark:border-slate-600/45 dark:bg-slate-900/80 dark:shadow-black/50;
+  }
+  @media (hover: hover) {
+    .glass-card-hover:hover {
+      @apply -translate-y-0.5 border-violet-200/50 shadow-lg shadow-violet-500/10 dark:border-violet-500/25 dark:shadow-violet-950/35;
+    }
   }
   .badge-green {
     @apply bg-emerald-100 text-emerald-800 border border-emerald-200/90 rounded-full px-3 py-0.5 text-sm font-medium
@@ -43,31 +93,116 @@
     @apply bg-teal-100 text-teal-900 border border-teal-200/90 rounded-full px-3 py-0.5 text-sm font-medium
       dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-500/35;
   }
-  .btn-primary {
-    @apply bg-gradient-to-r from-cf-teal to-cf-blue text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity shadow-sm shadow-teal-900/10;
+
+  .text-gradient-brand {
+    background-image: linear-gradient(
+      var(--cf-brand-angle),
+      var(--cf-brand-a) 0%,
+      var(--cf-brand-b) 44%,
+      var(--cf-brand-c) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
+
+  .bg-gradient-brand {
+    background-image: linear-gradient(
+      var(--cf-brand-angle),
+      var(--cf-brand-a) 0%,
+      var(--cf-brand-b) 50%,
+      var(--cf-brand-c) 100%
+    );
+  }
+
+  .bg-gradient-brand-br {
+    background-image: linear-gradient(
+      135deg,
+      var(--cf-brand-a) 0%,
+      var(--cf-brand-b) 48%,
+      var(--cf-brand-c) 100%
+    );
+  }
+
+  .bg-gradient-brand-t {
+    background-image: linear-gradient(
+      to top,
+      var(--cf-brand-a) 0%,
+      var(--cf-brand-b) 50%,
+      var(--cf-brand-c) 100%
+    );
+  }
+
+  .bg-gradient-brand-x {
+    background-image: linear-gradient(
+      to right,
+      var(--cf-brand-a) 0%,
+      var(--cf-brand-b) 50%,
+      var(--cf-brand-c) 100%
+    );
+  }
+
+  /** Soft radial behind hero icon — uses same hue family as brand vars */
+  .hero-icon-glow {
+    background: radial-gradient(
+        circle at 35% 40%,
+        color-mix(in srgb, var(--cf-brand-a) 42%, transparent) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        circle at 70% 60%,
+        color-mix(in srgb, var(--cf-brand-c) 35%, transparent) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        color-mix(in srgb, var(--cf-brand-b) 28%, transparent) 0%,
+        transparent 62%
+      );
+  }
+
+  .btn-primary {
+    @apply relative overflow-hidden rounded-xl px-6 py-3 font-semibold text-white shadow-md transition-[transform,box-shadow,filter] duration-200
+      hover:brightness-105 hover:shadow-lg active:scale-[0.98];
+    background-image: linear-gradient(
+      var(--cf-brand-angle),
+      var(--cf-brand-a) 0%,
+      var(--cf-brand-b) 52%,
+      var(--cf-brand-c) 100%
+    );
+    box-shadow:
+      0 4px 14px -2px color-mix(in srgb, var(--cf-brand-b) 35%, transparent),
+      0 2px 6px -2px color-mix(in srgb, var(--cf-brand-a) 25%, transparent);
+  }
+  .dark .btn-primary {
+    box-shadow:
+      0 4px 20px -4px color-mix(in srgb, var(--cf-brand-b) 45%, transparent),
+      0 2px 8px -4px color-mix(in srgb, var(--cf-brand-a) 30%, transparent);
+  }
+
   .btn-ghost {
-    @apply border border-slate-300 text-slate-900 font-semibold rounded-xl px-6 py-3 hover:bg-slate-100/80 transition-colors
-      dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800/70;
+    @apply rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-900 transition-[background-color,transform,box-shadow] duration-200
+      hover:bg-slate-100/90 hover:shadow-sm active:scale-[0.99] dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-800/80;
   }
   .input-dark {
-    @apply bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cf-teal transition-colors w-full
-      dark:bg-slate-950/55 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-500;
+    @apply bg-white border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-violet-500 transition-colors w-full
+      dark:bg-slate-950/55 dark:border-slate-600 dark:text-slate-100 dark:placeholder-slate-500
+      dark:focus:border-violet-400 dark:focus:ring-violet-500/20 focus:ring-2 focus:ring-violet-500/20;
   }
   /** Home hero search — stronger contrast on dark glass cards */
   .home-search-input {
     @apply min-h-[2.875rem] w-full rounded-xl border-2 border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder-slate-400
-      transition-colors focus:border-cf-teal focus:outline-none focus:ring-2 focus:ring-cf-teal/25
+      transition-colors focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/25
       dark:border-slate-500 dark:bg-slate-950 dark:text-slate-50 dark:placeholder-slate-500
-      dark:focus:border-teal-400 dark:focus:ring-teal-500/20;
+      dark:focus:border-violet-400 dark:focus:ring-violet-500/20;
   }
   .row-divider {
     @apply flex items-center justify-between py-3 border-b border-slate-200/80 last:border-0 dark:border-slate-700/85;
   }
 
   .surface-nav {
-    @apply border-b border-slate-200/90 bg-white/75 backdrop-blur-md shadow-sm shadow-slate-200/30
-      dark:border-slate-700/80 dark:bg-slate-950/80 dark:shadow-black/35;
+    @apply border-b border-slate-200/80 bg-white/80 shadow-md shadow-slate-200/20 backdrop-blur-xl
+      dark:border-slate-700/70 dark:bg-slate-950/85 dark:shadow-black/40;
   }
   .surface-footer {
     @apply border-t border-slate-200/90 bg-white/80 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/90;
@@ -84,10 +219,37 @@
       dark:border-slate-700/80 dark:bg-slate-950/95 dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)];
   }
   .bg-top-rec {
-    @apply border-cf-teal/30 bg-teal-50/60 dark:border-teal-500/25 dark:bg-teal-950/25;
+    border-color: color-mix(in srgb, var(--cf-brand-a) 32%, transparent);
+    background-image: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--cf-brand-a) 12%, white),
+      color-mix(in srgb, var(--cf-brand-b) 8%, white),
+      color-mix(in srgb, var(--cf-brand-c) 10%, white)
+    );
+    @apply rounded-2xl border shadow-sm;
+    box-shadow: 0 1px 8px color-mix(in srgb, var(--cf-brand-b) 12%, transparent);
   }
+  .dark .bg-top-rec {
+    border-color: color-mix(in srgb, var(--cf-brand-a) 28%, transparent);
+    background-image: linear-gradient(
+      to bottom right,
+      color-mix(in srgb, var(--cf-brand-a) 18%, #0f172a),
+      color-mix(in srgb, var(--cf-brand-b) 14%, #0f172a),
+      color-mix(in srgb, var(--cf-brand-c) 12%, #0f172a)
+    );
+    box-shadow: 0 1px 12px color-mix(in srgb, var(--cf-brand-b) 18%, transparent);
+  }
+
+  .text-link-brand {
+    color: var(--cf-accent-text);
+  }
+
+  .accent-brand {
+    accent-color: var(--cf-brand-b);
+  }
+
   .btn-compare-state {
-    @apply border-cf-teal/50 text-cf-teal bg-teal-50/60 dark:border-teal-400/40 dark:text-teal-300 dark:bg-teal-950/35;
+    @apply border-violet-400/50 text-violet-700 bg-violet-50/70 dark:border-violet-400/40 dark:text-violet-200 dark:bg-violet-950/40;
   }
   .btn-compare-idle {
     @apply border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500;

@@ -1,7 +1,7 @@
 /**
  * App.tsx — Root layout and route definitions.
  *
- * Renders the persistent shell (navbar, footer, animated background)
+ * Renders the persistent shell (navbar, footer, ambient background)
  * and maps URL paths to page components via react-router-dom.
  *
  * Routes:
@@ -15,7 +15,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import MedMotifBackground from './components/MedMotifBackground';
+import AmbientBackground from './components/AmbientBackground';
 import HomePage from './pages/HomePage';
 import ResultsPage from './pages/ResultsPage';
 import ComparePage from './pages/ComparePage';
@@ -24,8 +24,7 @@ import SummaryPage from './pages/SummaryPage';
 export default function App() {
   return (
     <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden">
-      {/* Animated pill / capsule canvas background */}
-      <MedMotifBackground />
+      <AmbientBackground />
 
       <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
         <Navbar />

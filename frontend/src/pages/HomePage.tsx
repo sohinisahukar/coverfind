@@ -13,7 +13,23 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Building2,
+  ChevronDown,
+  ChevronLeft,
+  ClipboardList,
+  HeartPulse,
+  MapPin,
+  Search,
+  Sparkles,
+  ShieldCheck,
+  ShieldOff,
+  SlidersHorizontal,
+  Stethoscope,
+} from 'lucide-react';
 import PlanSelect from '../components/PlanSelect';
+
+const SW = 1.75;
 import { fetchInsuranceProviders, fetchRecommendations, zipToCoords, type InsuranceProvider } from '../lib/api';
 
 const FALLBACK_QUICK_TAGS = ['Physical Therapy', 'Dental Cleaning', 'Skin Rash', 'Urgent Care'];
@@ -45,6 +61,21 @@ const STEP_TITLES: Record<Exclude<Step, 'basics'>, string> = {
   policy: 'Your plan',
   finalize: 'Preferences before search',
 };
+
+function StepHeadingIcon({ step }: { step: Exclude<Step, 'basics'> }) {
+  const cls = 'mt-0.5 shrink-0 text-[var(--cf-accent-text)]';
+  const common = { className: cls, size: 22 as const, strokeWidth: SW, 'aria-hidden': true as const };
+  switch (step) {
+    case 'insurance-prompt':
+      return <ShieldCheck {...common} />;
+    case 'provider':
+      return <Building2 {...common} />;
+    case 'policy':
+      return <ClipboardList {...common} />;
+    case 'finalize':
+      return <SlidersHorizontal {...common} />;
+  }
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -193,20 +224,56 @@ export default function HomePage() {
   const pct = progressPct(step, useInsuranceDetails);
 
   return (
-    <div className="flex w-full min-h-full flex-1 flex-col items-center px-4 pt-10 pb-16 sm:pt-12 sm:pb-20">
-      <header className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink mb-3 leading-tight tracking-tight">
-          Find care that's right for you.
-        </h1>
-        <p className="text-ink-muted text-base sm:text-lg leading-relaxed px-1">
-          Get recommendations based on real patient experiences — not just distance or cost.
+    <div className="flex w-full min-h-full flex-1 flex-col items-center px-4 pb-16 pt-10 sm:pb-20 sm:pt-12">
+      <header className="animate-fade-up mx-auto mb-10 max-w-3xl text-center sm:mb-12">
+        <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.32em] text-link-brand opacity-90">
+          Care search · signals &amp; trade-offs
         </p>
+        <div className="relative mb-6 flex justify-center" aria-hidden>
+          <div className="hero-icon-glow absolute h-28 w-28 animate-icon-breathe rounded-full blur-2xl motion-reduce:animate-none" />
+          <HeartPulse
+            className="relative z-[1] text-[var(--cf-accent-text)] drop-shadow-[0_4px_14px_color-mix(in_srgb,var(--cf-brand-a)_45%,transparent)]"
+            size={48}
+            strokeWidth={SW}
+          />
+        </div>
+        <h1 className="mb-4 text-balance text-2xl font-extrabold uppercase leading-[1.22] tracking-tight text-ink sm:text-4xl sm:leading-[1.2] lg:text-[2.85rem] lg:leading-[1.18]">
+          Find care that&apos;s{' '}
+          <span className="text-gradient-brand">right for you</span>.
+        </h1>
+        <p className="mx-auto max-w-2xl px-1 text-base font-normal leading-[1.65] text-ink-muted sm:text-lg sm:leading-[1.7]">
+          Real-world recovery and cost signals — so your search feels less like a directory and more like a{' '}
+          <span className="font-medium text-ink dark:text-slate-200">head start</span>.
+        </p>
+        <a
+          href="#search-wizard"
+          className="text-link-brand mt-6 inline-flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-80"
+        >
+          Build your search
+          <ChevronDown size={18} strokeWidth={SW} className="opacity-90" aria-hidden />
+        </a>
       </header>
 
-      <div className="glass-card w-full max-w-xl sm:max-w-2xl shadow-lg shadow-slate-900/5 dark:shadow-black/30 rounded-2xl">
+      <div className="animate-fade-up mb-4 w-full max-w-xl text-center sm:max-w-2xl sm:text-left" style={{ animationDelay: '45ms' }}>
+        <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-link-brand opacity-90">
+          Where to begin
+        </p>
+        <h2 className="mt-1.5 text-xl font-extrabold uppercase leading-[1.3] tracking-tight text-ink sm:text-2xl sm:leading-[1.28]">
+          Shape your search
+        </h2>
+        <p className="mt-1 max-w-xl text-sm text-muted sm:text-base">
+          A short wizard — then ranked results you can compare on what matters to you.
+        </p>
+      </div>
+
+      <div
+        id="search-wizard"
+        className="glass-card glass-card-hover w-full max-w-xl scroll-mt-24 animate-fade-up rounded-3xl sm:max-w-2xl"
+        style={{ animationDelay: '75ms' }}
+      >
         <div className="h-1 w-full overflow-hidden rounded-t-2xl bg-slate-200/90 dark:bg-slate-700/80">
           <div
-            className="h-full rounded-r-full bg-gradient-to-r from-cf-teal to-cf-blue transition-[width] duration-500 ease-out"
+            className="bg-gradient-brand-x h-full rounded-r-full transition-[width] duration-500 ease-out"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -215,7 +282,7 @@ export default function HomePage() {
           {step !== 'basics' && query.trim() && (
             <div className="mb-5 flex flex-col gap-2 rounded-xl border border-slate-200/90 bg-white/50 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-600/70 dark:bg-slate-950/40">
               <div className="min-w-0 text-left">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-cf-teal dark:text-teal-300">Your search</p>
+                <p className="text-link-brand text-[10px] font-semibold uppercase tracking-wide">Your search</p>
                 <p className="truncate text-sm font-medium text-ink">
                   {query}
                   <span className="font-normal text-muted"> · </span>
@@ -234,9 +301,12 @@ export default function HomePage() {
 
           {step !== 'basics' && (
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200/80 pb-4 dark:border-slate-700/70">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-cf-teal dark:text-teal-300/90">Next</p>
-                <h2 className="text-lg font-semibold text-ink leading-tight sm:text-xl">{STEP_TITLES[step]}</h2>
+              <div className="flex min-w-0 items-start gap-2.5">
+                <StepHeadingIcon step={step} />
+                <div className="min-w-0">
+                  <p className="text-link-brand text-[10px] font-semibold uppercase tracking-wider opacity-90">Next</p>
+                  <h2 className="text-lg font-semibold leading-[1.38] text-ink sm:text-xl">{STEP_TITLES[step]}</h2>
+                </div>
               </div>
               <span className="shrink-0 text-xs tabular-nums text-muted">{Math.round(pct)}%</span>
             </div>
@@ -246,8 +316,11 @@ export default function HomePage() {
             {step === 'basics' && (
               <>
                 <div className="border-b border-slate-200/80 pb-4 dark:border-slate-700/70">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-cf-teal dark:text-teal-300/90">Step 1</p>
-                  <h2 className="text-xl font-bold text-ink tracking-tight sm:text-2xl">Search for care</h2>
+                  <p className="text-link-brand text-[10px] font-semibold uppercase tracking-wider opacity-90">Step 1</p>
+                  <h2 className="flex items-center gap-2 text-xl font-semibold leading-[1.35] tracking-tight text-ink sm:text-2xl">
+                    <Stethoscope className="shrink-0 text-[var(--cf-accent-text)]" size={24} strokeWidth={SW} aria-hidden />
+                    Search for care
+                  </h2>
                 </div>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-3">
                   <div className="min-w-0 flex-1">
@@ -277,17 +350,11 @@ export default function HomePage() {
                           </svg>
                         </button>
                       ) : (
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+                        <Search
+                          className="pointer-events-none absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400 dark:text-slate-500"
+                          strokeWidth={SW}
                           aria-hidden
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                        />
                       )}
                     </div>
                   </div>
@@ -305,17 +372,11 @@ export default function HomePage() {
                         onChange={e => setLocation(e.target.value)}
                         className="home-search-input pr-10"
                       />
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      <MapPin
+                        className="pointer-events-none absolute right-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400 dark:text-slate-500"
+                        strokeWidth={SW}
+                        aria-hidden
+                      />
                     </div>
                   </div>
                 </div>
@@ -339,9 +400,7 @@ export default function HomePage() {
                   onClick={goBasics}
                   className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ChevronLeft size={18} strokeWidth={SW} aria-hidden />
                   Back
                 </button>
                 <p className="text-subtle text-sm sm:text-base leading-relaxed">
@@ -352,15 +411,17 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => chooseInsurancePath(true)}
-                    className="rounded-xl border-2 border-cf-teal/35 bg-teal-50/60 dark:bg-teal-950/35 text-ink font-semibold py-3.5 px-4 text-sm hover:border-cf-teal/60 transition-colors"
+                    className="flex items-center justify-center gap-2 rounded-xl border-2 border-violet-400/45 bg-violet-50/70 py-3.5 px-4 text-sm font-semibold text-ink transition-colors hover:border-violet-500/55 dark:border-violet-500/40 dark:bg-violet-950/35 dark:hover:border-violet-400/60"
                   >
+                    <ShieldCheck className="shrink-0 text-[var(--cf-accent-text)]" size={20} strokeWidth={SW} aria-hidden />
                     Yes, add insurance
                   </button>
                   <button
                     type="button"
                     onClick={() => chooseInsurancePath(false)}
-                    className="rounded-xl border border-slate-300 dark:border-slate-600 text-ink font-medium py-3.5 px-4 text-sm hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 py-3.5 px-4 text-sm font-medium text-ink transition-colors hover:bg-slate-100/80 dark:border-slate-600 dark:hover:bg-slate-800/50"
                   >
+                    <ShieldOff className="shrink-0 text-muted" size={20} strokeWidth={SW} aria-hidden />
                     No, skip for now
                   </button>
                 </div>
@@ -374,13 +435,14 @@ export default function HomePage() {
                   onClick={() => setStep('insurance-prompt')}
                   className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ChevronLeft size={18} strokeWidth={SW} aria-hidden />
                   Back
                 </button>
                 {/* Insurers: GET /api/insurance/providers — do not surface file paths or data filenames in UI */}
-                <p className="text-sm text-subtle">Choose the company that issues your health plan.</p>
+                <p className="flex items-start gap-2 text-sm text-subtle">
+                  <Building2 className="mt-0.5 shrink-0 text-[var(--cf-accent-text)]" size={18} strokeWidth={SW} aria-hidden />
+                  <span>Choose the company that issues your health plan.</span>
+                </p>
                 {providersLoading && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-pulse">
                     {[1, 2, 3, 4].map(i => (
@@ -400,7 +462,7 @@ export default function HomePage() {
                         <button
                           type="button"
                           onClick={() => selectProvider(p)}
-                          className="w-full text-left px-4 py-3.5 rounded-xl border border-slate-200/90 dark:border-slate-600/80 bg-white/40 dark:bg-slate-950/20 hover:border-cf-teal/45 hover:bg-teal-50/30 dark:hover:bg-teal-950/20 transition-all text-ink text-sm font-medium"
+                          className="w-full rounded-xl border border-slate-200/90 bg-white/40 px-4 py-3.5 text-left text-sm font-medium text-ink transition-all hover:border-violet-400/45 hover:bg-violet-50/40 dark:border-slate-600/80 dark:bg-slate-950/20 dark:hover:border-violet-500/35 dark:hover:bg-violet-950/25"
                         >
                           {p.name}
                         </button>
@@ -421,13 +483,14 @@ export default function HomePage() {
                   }}
                   className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ChevronLeft size={18} strokeWidth={SW} aria-hidden />
                   Back
                 </button>
-                <p className="text-sm text-subtle">
-                  Plans for <span className="text-ink font-semibold">{selectedProvider.name}</span>
+                <p className="flex items-start gap-2 text-sm text-subtle">
+                  <ClipboardList className="mt-0.5 shrink-0 text-[var(--cf-accent-text)]" size={18} strokeWidth={SW} aria-hidden />
+                  <span>
+                    Plans for <span className="font-semibold text-ink">{selectedProvider.name}</span>
+                  </span>
                 </p>
                 <PlanSelect
                   label="Select your plan"
@@ -447,9 +510,7 @@ export default function HomePage() {
                   }
                   className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ChevronLeft size={18} strokeWidth={SW} aria-hidden />
                   Back
                 </button>
 
@@ -485,13 +546,13 @@ export default function HomePage() {
                           max={100}
                           value={sliderValue}
                           onChange={e => setSliderValue(Number(e.target.value))}
-                          className="flex-1 accent-cf cursor-pointer min-w-0 h-2"
+                          className="accent-brand h-2 min-w-0 flex-1 cursor-pointer"
                         />
                         <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 shrink-0 leading-tight">
                           Plan pays more
                         </span>
                       </div>
-                      <p className="text-center text-cf-teal dark:text-teal-300 font-bold text-base tabular-nums">
+                      <p className="text-link-brand text-center text-base font-bold tabular-nums">
                         {sliderValue}% covered <span className="text-xs font-normal text-muted">(estimate)</span>
                       </p>
                     </>
@@ -510,7 +571,7 @@ export default function HomePage() {
                           max={100}
                           value={sliderValue}
                           onChange={e => setSliderValue(Number(e.target.value))}
-                          className="flex-1 accent-cf cursor-pointer min-w-0 h-2"
+                          className="accent-brand h-2 min-w-0 flex-1 cursor-pointer"
                         />
                         <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 shrink-0 leading-tight">
                           Stronger outcomes
@@ -520,7 +581,12 @@ export default function HomePage() {
                   )}
                 </div>
 
-                <button type="button" onClick={handleSearch} className="w-full btn-primary py-3.5 sm:py-4 text-base rounded-xl mt-1">
+                <button
+                  type="button"
+                  onClick={handleSearch}
+                  className="btn-primary mt-1 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-base sm:py-4"
+                >
+                  <HeartPulse className="shrink-0 opacity-95" size={20} strokeWidth={SW} aria-hidden />
                   Find Best Care
                 </button>
               </>
@@ -529,15 +595,21 @@ export default function HomePage() {
         </div>
       </div>
 
-      <section className="mt-10 sm:mt-12 w-full max-w-xl sm:max-w-2xl">
-        <p className="text-center text-xs font-medium text-muted uppercase tracking-wide mb-3">Quick searches</p>
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+      <section
+        className="animate-fade-up mt-12 w-full max-w-xl sm:mt-14 sm:max-w-2xl"
+        style={{ animationDelay: '160ms' }}
+      >
+        <p className="mb-3 flex items-center justify-center gap-2 text-center text-[11px] font-bold uppercase tracking-[0.2em] text-muted">
+          <Sparkles className="shrink-0 text-[var(--cf-accent-text)]" size={16} strokeWidth={SW} aria-hidden />
+          Quick searches
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
           {quickTags.map(tag => (
             <button
               key={tag}
               type="button"
               onClick={() => quickNavigate(tag)}
-              className="border border-slate-200/90 bg-white/70 text-slate-700 text-xs sm:text-sm px-4 py-2 rounded-full hover:border-cf-teal/50 hover:text-cf-teal-bright transition-colors dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:text-teal-300"
+              className="rounded-full border border-slate-200/90 bg-white/80 px-4 py-2 text-xs font-medium text-slate-700 shadow-sm backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-400/55 hover:text-violet-700 hover:shadow-md hover:shadow-violet-500/15 active:translate-y-0 dark:border-slate-600 dark:bg-slate-900/55 dark:text-slate-200 dark:hover:border-violet-400/50 dark:hover:text-violet-200 dark:hover:shadow-violet-950/40 sm:px-5 sm:text-sm"
             >
               {tag}
             </button>

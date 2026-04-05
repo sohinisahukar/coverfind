@@ -10,7 +10,7 @@ type Props = {
 };
 
 /**
- * Themed plan picker — native &lt;select&gt; menus can’t be styled; this matches glass / teal UI.
+ * Themed plan picker — native &lt;select&gt; menus can’t be styled; matches glass + brand UI.
  */
 export default function PlanSelect({
   label,
@@ -58,10 +58,10 @@ export default function PlanSelect({
           aria-controls={listId}
           aria-labelledby={`${btnId}-label`}
           onClick={() => setOpen(o => !o)}
-          className={`plan-select-trigger flex w-full min-h-[2.875rem] items-center justify-between gap-2 rounded-xl border-2 bg-white px-4 py-2.5 pr-10 text-left text-sm transition-[border-color,box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-teal/25 dark:bg-slate-950 dark:focus-visible:ring-teal-500/25 ${
+          className={`plan-select-trigger flex min-h-[2.875rem] w-full items-center justify-between gap-2 rounded-xl border-2 bg-white px-4 py-2.5 pr-10 text-left text-sm transition-[border-color,box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/25 dark:bg-slate-950 dark:focus-visible:ring-violet-400/30 ${
             open
-              ? 'border-cf-teal shadow-sm shadow-teal-900/10 dark:border-teal-400/70 dark:shadow-teal-900/20'
-              : 'border-slate-200 focus-visible:border-cf-teal dark:border-slate-600 dark:focus-visible:border-teal-400'
+              ? 'border-violet-500 shadow-sm shadow-violet-900/10 dark:border-violet-400/75 dark:shadow-violet-950/30'
+              : 'border-slate-200 focus-visible:border-violet-500 dark:border-slate-600 dark:focus-visible:border-violet-400'
           }`}
         >
           <span className={selected ? 'truncate text-ink' : 'truncate text-muted'}>
@@ -98,7 +98,7 @@ export default function PlanSelect({
                     aria-selected={isSel}
                     className={`w-full border-b border-slate-100 px-4 py-2.5 text-left transition-colors last:border-b-0 dark:border-slate-700/80 ${
                       isSel
-                        ? 'bg-teal-50/90 dark:bg-teal-950/45'
+                        ? 'bg-violet-50/90 dark:bg-violet-950/45'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/70'
                     }`}
                     onClick={() => {

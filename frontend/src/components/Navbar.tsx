@@ -8,7 +8,10 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Stethoscope } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+
+const ICON_STROKE = 1.75;
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -16,14 +19,18 @@ export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="surface-nav flex items-center justify-between px-4 sm:px-8 py-4 relative">
-      <Link to="/" className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-cf-teal dark:ring-offset-slate-950" aria-label="Careculator home">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+    <nav className="surface-nav relative flex items-center justify-between px-4 py-4 sm:px-8">
+      <Link
+        to="/"
+        className="group flex shrink-0 items-center gap-2.5 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-violet-500 dark:ring-offset-slate-950"
+        aria-label="Careculator home"
+      >
+        <div className="bg-gradient-brand-br flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md transition-transform duration-200 group-hover:scale-105 group-hover:shadow-lg group-hover:brightness-105 [box-shadow:0_4px_14px_-2px_color-mix(in_srgb,var(--cf-brand-b)_40%,transparent)] dark:[box-shadow:0_4px_18px_-4px_color-mix(in_srgb,var(--cf-brand-b)_50%,transparent)]">
+          <Stethoscope className="text-white" size={18} strokeWidth={ICON_STROKE} aria-hidden />
         </div>
-        <span className="text-ink font-semibold text-lg tracking-tight">Careculator</span>
+        <span className="text-gradient-brand text-base font-extrabold uppercase tracking-[0.06em] sm:text-lg">
+          Careculator
+        </span>
       </Link>
 
       <div className="hidden sm:flex items-center gap-5 md:gap-7">
@@ -66,7 +73,7 @@ export default function Navbar() {
         <button
           type="button"
           onClick={() => navigate('/results')}
-          className="border border-slate-300 text-ink text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors dark:border-slate-600 dark:hover:bg-slate-800/80"
+          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-ink shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-400/45 hover:bg-violet-50/60 hover:shadow-md dark:border-slate-600 dark:hover:border-violet-500/40 dark:hover:bg-violet-950/35"
         >
           Try Demo
         </button>

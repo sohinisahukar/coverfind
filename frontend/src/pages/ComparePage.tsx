@@ -3,30 +3,35 @@
  *
  * URL: /compare?ids=clinicA,clinicB
  *
- * Fetches the requested clinics via GET /api/clinics/compare?ids=...
- * and renders them in a responsive grid (1-col on mobile, 2-col on desktop).
- *
- * Each clinic card shows key metrics (visits, recovery, outcome, cost, burden)
- * with a cost bar chart when 2+ clinics are present.
- *
- * Note: Outcome quality uses a custom badge (high=green/good, low=red/bad)
- * because the generic StatusBadge treats "high" as bad (correct for burden,
- * wrong for outcome quality).
+ * "Best value" for this view = lowest totalCostEstimate among the compared
+ * clinics (at most one), not the per-row DB badge (many clinics can share it).
  */
 
 import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronLeft, Circle, Stethoscope } from 'lucide-react';
+import toast from 'react-hot-toast';
+import StatusBadge from '../components/StatusBadge';
+import { fetchCompare, type Clinic } from '../lib/api';
 
 function safeUrl(raw: string | undefined, fallbackName: string): string {
   if (!raw) return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
   const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  try { new URL(withProto); return withProto; } catch {
+  try {
+    new URL(withProto);
+    return withProto;
+  } catch {
     return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
   }
 }
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import StatusBadge from '../components/StatusBadge';
-import { fetchCompare, type Clinic } from '../lib/api';
+
+const SW = 1.75;
+
+function idOfLowestTotalCost(list: Clinic[]): string | null {
+  if (list.length === 0) return null;
+  const min = Math.min(...list.map(c => c.totalCostEstimate));
+  return list.find(c => c.totalCostEstimate === min)?.id ?? null;
+}
 
 export default function ComparePage() {
   const navigate = useNavigate();
@@ -38,7 +43,10 @@ export default function ComparePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ids.length === 0) { setLoading(false); return; }
+    if (ids.length === 0) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetchCompare(ids)
       .then(setClinics)
@@ -48,38 +56,55 @@ export default function ComparePage() {
         toast.error(msg, { duration: 6000 });
       })
       .finally(() => setLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get('ids')]);
 
   const maxCost = Math.max(...clinics.map(c => c.totalCostEstimate), 1);
-  const barHeight = (cost: number) => Math.round((cost / maxCost) * 110);
+  /** Max bar height (px) — keep in sync with chart middle track min-height */
+  const maxBarPx = 120;
+  const barHeight = (cost: number) => Math.round((cost / maxCost) * maxBarPx);
+  const costWinnerId = idOfLowestTotalCost(clinics);
+
+  const chartGridCols =
+    clinics.length <= 1
+      ? 'grid-cols-1'
+      : clinics.length === 2
+        ? 'grid-cols-2'
+        : clinics.length === 3
+          ? 'grid-cols-3'
+          : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4';
 
   return (
-    <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-      <div className="text-center mb-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-ink">Compare Providers</h1>
-        <p className="text-muted mt-1 text-sm">Side-by-side comparison</p>
-      </div>
-      <div className="flex justify-end mb-4 sm:mb-6">
+    <div className="max-w-5xl mx-auto w-full min-w-0 px-4 sm:px-6 py-6 sm:py-8 pb-8">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4 sm:mb-6">
+        <div className="text-center sm:text-left min-w-0">
+          <h1 className="text-xl font-extrabold uppercase leading-[1.28] tracking-tight text-ink sm:text-3xl sm:leading-[1.26]">
+            Compare providers
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Side-by-side comparison · Best value = lowest total estimated cost in this set
+          </p>
+        </div>
         <button
+          type="button"
           onClick={() => navigate(-1)}
-          className="text-muted text-sm flex items-center gap-1 hover:text-ink transition-colors"
+          className="text-muted text-sm flex items-center justify-center sm:justify-end gap-1 hover:text-ink transition-colors shrink-0"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+          <ChevronLeft size={16} strokeWidth={SW} aria-hidden />
           Back to results
         </button>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-cf-teal border-t-transparent rounded-full animate-spin" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent dark:border-violet-400" />
         </div>
       )}
 
       {error && (
-        <div className="glass-card p-4 border-red-200 bg-red-50/80 text-red-800 text-sm dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">{error}</div>
+        <div className="glass-card p-4 border-red-200 bg-red-50/80 text-red-800 text-sm dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+          {error}
+        </div>
       )}
 
       {!loading && !error && ids.length === 0 && (
@@ -90,36 +115,69 @@ export default function ComparePage() {
 
       {!loading && !error && ids.length > 0 && (
         <>
-          <div className={`grid grid-cols-1 gap-4 ${clinics.length >= 2 ? 'md:grid-cols-2' : ''}`}>
-            {clinics.map((clinic, i) => (
-              <ProviderColumn key={clinic.id} clinic={clinic} isRecommended={i === 0} />
+          <div
+            className={`grid grid-cols-1 gap-4 md:items-stretch ${clinics.length >= 2 ? 'md:grid-cols-2' : ''}`}
+          >
+            {clinics.map(clinic => (
+              <div key={clinic.id} className="min-w-0">
+                <ProviderColumn
+                  clinic={clinic}
+                  isCostWinner={costWinnerId != null && clinic.id === costWinnerId}
+                />
+              </div>
             ))}
           </div>
 
           {clinics.length >= 2 && (
-            <div className="glass-card p-4 sm:p-5 flex flex-col justify-center mt-4">
-              <div className="flex items-end justify-center gap-6 sm:gap-8 h-28 sm:h-32">
-                {clinics.map((c, i) => (
-                  <div key={c.id} className="flex flex-col items-center gap-1.5">
-                    <span className="text-subtle text-xs font-medium">~${c.totalCostEstimate.toLocaleString()}</span>
-                    <div
-                      className={`w-14 sm:w-16 rounded-t-lg ${i === 0 ? 'bg-gradient-to-t from-cf-blue to-cf-teal' : 'bg-gradient-to-t from-amber-600 to-amber-400'}`}
-                      style={{ height: `${barHeight(c.totalCostEstimate)}px` }}
-                    />
-                    <span className="text-muted text-xs">{c.name.split(' ')[0]}</span>
-                  </div>
-                ))}
+            <div className="glass-card p-4 sm:p-5 mt-4 overflow-hidden min-w-0 rounded-2xl">
+              <p className="text-muted text-xs text-center mb-3">Estimated total cost</p>
+              <div className={`grid w-full ${chartGridCols} gap-3 sm:gap-4`}>
+                {clinics.map(c => {
+                  const isWin = costWinnerId != null && c.id === costWinnerId;
+                  const shortLabel =
+                    c.name.length > 36 ? `${c.name.slice(0, 34)}…` : c.name;
+                  return (
+                    <div key={c.id} className="flex min-w-0 flex-col">
+                      <div className="flex min-h-[2.75rem] items-end justify-center px-0.5 pb-1">
+                        <span className="text-subtle text-center text-[11px] font-medium leading-snug tabular-nums sm:text-xs">
+                          ~${c.totalCostEstimate.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex min-h-[7.5rem] flex-col items-center justify-end border-b border-transparent">
+                        <div
+                          className={`w-[85%] max-w-[4.5rem] rounded-t-md sm:max-w-[5rem] ${
+                            isWin
+                              ? 'bg-gradient-brand-t'
+                              : 'bg-gradient-to-t from-amber-600 to-amber-400'
+                          }`}
+                          style={{ height: `${barHeight(c.totalCostEstimate)}px` }}
+                        />
+                      </div>
+                      <div className="flex min-h-[2.75rem] items-start justify-center pt-2.5">
+                        <span
+                          className="text-muted line-clamp-2 text-center text-[11px] leading-snug sm:text-xs"
+                          title={c.name}
+                        >
+                          {shortLabel}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="border-t border-slate-200 dark:border-slate-700/85 mt-3" />
+              <div className="mx-1 mt-4 border-t border-slate-200 dark:border-slate-700/85" />
             </div>
           )}
 
           {clinics.length > 0 && (
             <div className={`grid grid-cols-1 gap-3 sm:gap-4 mt-4 ${clinics.length >= 2 ? 'sm:grid-cols-2' : ''}`}>
               {clinics.map(c => (
-                <div key={c.id} className="glass-card p-4 sm:p-5 flex flex-col gap-3">
-                  <h3 className="text-ink font-semibold text-sm sm:text-base">{c.name}</h3>
-                  <p className="text-subtle text-xs sm:text-sm leading-relaxed">{c.patientSummary}</p>
+                <div
+                  key={c.id}
+                  className="glass-card p-4 sm:p-5 flex flex-col gap-3 min-w-0 overflow-hidden rounded-2xl"
+                >
+                  <h3 className="text-ink font-semibold text-sm sm:text-base break-words">{c.name}</h3>
+                  <p className="text-subtle text-xs sm:text-sm leading-relaxed break-words">{c.patientSummary}</p>
                   {c.website ? (
                     <a
                       href={safeUrl(c.website, c.name)}
@@ -138,51 +196,80 @@ export default function ComparePage() {
           )}
         </>
       )}
-
-      <div className="flex items-center justify-end mt-5 sm:mt-6 text-muted text-sm">
-        <button type="button" onClick={() => navigate('/results')} className="flex items-center gap-1 hover:text-ink transition-colors">
-          Back to results
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
     </div>
   );
 }
 
-function ProviderColumn({ clinic, isRecommended }: { clinic: Clinic; isRecommended: boolean }) {
+function ProviderColumn({ clinic, isCostWinner }: { clinic: Clinic; isCostWinner: boolean }) {
   return (
-    <div className={`glass-card p-4 sm:p-5 ${isRecommended ? 'border-cf-teal/30 ring-1 ring-cf-teal/10' : ''}`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
-          {isRecommended ? (
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+    <div
+      className={`glass-card p-4 sm:p-5 h-full flex flex-col min-w-0 overflow-hidden rounded-2xl ${
+        isCostWinner
+          ? 'border-violet-400/40 ring-1 ring-violet-500/15 shadow-[inset_3px_0_0_0] shadow-violet-500/45 dark:shadow-violet-400/35'
+          : 'border-slate-200/80 dark:border-slate-700/60'
+      }`}
+    >
+      {/* Fixed min-height so both columns share the same divider / metrics baseline even when names wrap differently */}
+      <div className="mb-1 flex min-h-[6.75rem] items-start justify-between gap-3 sm:min-h-[7.25rem]">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          {isCostWinner ? (
+            <div
+              className="bg-gradient-brand-br mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full"
+              title="Lowest total estimated cost in this comparison"
+            >
+              <Stethoscope className="text-white" size={15} strokeWidth={SW} aria-hidden />
             </div>
           ) : (
-            <div className="w-7 h-7 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 text-xs shrink-0 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-300">⚠</div>
+            <div
+              className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-slate-300/70 bg-slate-100/60 dark:border-slate-600 dark:bg-slate-800/50"
+              title="Compare option"
+            >
+              <Circle className="text-slate-400 dark:text-slate-500" size={14} strokeWidth={2} aria-hidden />
+            </div>
           )}
-          <div className="min-w-0">
-            <span className="text-ink font-semibold text-sm sm:text-base truncate block">{clinic.name}</span>
-            {clinic.phone && <span className="text-muted text-xs">{clinic.phone}</span>}
+          <div className="min-h-[5.25rem] min-w-0 flex-1 sm:min-h-[5.75rem]">
+            <span className="text-ink text-sm font-semibold leading-snug sm:text-base break-words">{clinic.name}</span>
+            {clinic.phone && (
+              <span className="text-muted mt-1 block text-xs leading-snug">{clinic.phone}</span>
+            )}
           </div>
-          {clinic.badges.includes('best-value') && <StatusBadge status="best-value" />}
         </div>
-        <span className="text-muted text-xs sm:text-sm shrink-0 ml-2">
+        <span className="shrink-0 pt-0.5 text-xs tabular-nums text-muted sm:text-sm">
           {clinic.distanceMiles != null ? `${clinic.distanceMiles} mi` : '—'}
         </span>
       </div>
 
-      <div className="divide-y divide-slate-200/90 dark:divide-slate-700/85">
+      <div className="mb-3 flex min-h-[2rem] items-center border-b border-slate-200/90 pb-2 dark:border-slate-700/85">
+        {isCostWinner ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-md border border-teal-500/35 bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-800 dark:text-teal-200"
+            title="Lowest total estimated cost in this comparison"
+          >
+            <span className="text-teal-600 dark:text-teal-300" aria-hidden>
+              ★
+            </span>
+            Best value
+          </span>
+        ) : (
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-transparent select-none" aria-hidden>
+            —
+          </span>
+        )}
+      </div>
+
+      <div className="min-w-0 divide-y divide-slate-200/90 dark:divide-slate-700/85">
         <Row label="Avg Visits Needed" value={String(clinic.avgVisitsNeeded)} plain />
-        <Row label="Recovery Speed"><StatusBadge status={clinic.recoverySpeed} /></Row>
-        <Row label="Outcome Quality"><OutcomeQualityBadge quality={clinic.outcomeQuality} /></Row>
+        <Row label="Recovery Speed">
+          <StatusBadge status={clinic.recoverySpeed} />
+        </Row>
+        <Row label="Outcome Quality">
+          <OutcomeQualityBadge quality={clinic.outcomeQuality} />
+        </Row>
         <Row label="Total Cost" value={`~$${clinic.totalCostEstimate.toLocaleString()}`} plain highlight />
         <Row label="Per Visit Cost" value={`$${clinic.perVisitCost}`} plain highlight />
-        <Row label="Treatment Burden"><StatusBadge status={clinic.treatmentBurden} /></Row>
+        <Row label="Treatment Burden">
+          <StatusBadge status={clinic.treatmentBurden} />
+        </Row>
       </div>
     </div>
   );
@@ -190,15 +277,28 @@ function ProviderColumn({ clinic, isRecommended }: { clinic: Clinic; isRecommend
 
 function OutcomeQualityBadge({ quality }: { quality: string }) {
   const map: Record<string, { cls: string; icon: string }> = {
-    high:     { cls: 'badge-green', icon: '✓' },
+    high: { cls: 'badge-green', icon: '✓' },
     moderate: { cls: 'badge-amber', icon: '~' },
-    low:      { cls: 'badge-red',   icon: '⚠' },
+    low: { cls: 'badge-red', icon: '⚠' },
   };
   const { cls, icon } = map[quality] || map.moderate;
-  return <span className={cls}>{icon} {quality}</span>;
+  return (
+    <span className={`inline-flex items-center justify-center gap-1 min-h-[1.75rem] shrink-0 ${cls}`}>
+      <span className="text-xs leading-none shrink-0" aria-hidden>
+        {icon}
+      </span>
+      <span className="leading-tight capitalize">{quality}</span>
+    </span>
+  );
 }
 
-function Row({ label, value, children, plain, highlight }: {
+function Row({
+  label,
+  value,
+  children,
+  plain,
+  highlight,
+}: {
   label: string;
   value?: string;
   children?: React.ReactNode;
@@ -206,11 +306,19 @@ function Row({ label, value, children, plain, highlight }: {
   highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-2.5">
-      <span className="text-muted text-xs sm:text-sm">{label}</span>
-      {plain
-        ? <span className={`font-semibold text-ink ${highlight ? 'text-base sm:text-lg' : ''}`}>{value}</span>
-        : children}
+    <div className="flex min-h-[2.625rem] items-center justify-between gap-3 py-2 min-w-0">
+      <span className="shrink-0 text-xs text-muted sm:text-sm">{label}</span>
+      <div className="flex min-w-0 justify-end text-right">
+        {plain ? (
+          <span
+            className={`font-semibold tabular-nums text-ink break-all leading-tight ${highlight ? 'text-base sm:text-lg' : 'text-sm sm:text-base'}`}
+          >
+            {value}
+          </span>
+        ) : (
+          children
+        )}
+      </div>
     </div>
   );
 }

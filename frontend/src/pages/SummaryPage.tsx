@@ -10,9 +10,12 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Award, ChevronRight, CircleDot, Plus, Stethoscope } from 'lucide-react';
 import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
 import { fetchCompare, type Clinic } from '../lib/api';
+
+const SW = 1.75;
 
 export default function SummaryPage() {
   const navigate = useNavigate();
@@ -39,14 +42,17 @@ export default function SummaryPage() {
 
   return (
     <div className="max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
-      <div className="text-center mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-ink">Comparing Providers Summary</h1>
-        <p className="text-muted mt-1 text-sm">Side-by-side overview</p>
+      <div className="mb-6 flex flex-col items-center text-center sm:mb-8">
+        <Stethoscope className="mb-3 text-[var(--cf-accent-text)]" size={36} strokeWidth={SW} aria-hidden />
+        <h1 className="text-xl font-extrabold uppercase leading-[1.28] tracking-tight text-ink sm:text-3xl sm:leading-[1.26]">
+          Comparing providers summary
+        </h1>
+        <p className="mt-1 text-sm text-muted">Side-by-side overview</p>
       </div>
 
       {loading && (
         <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-cf-teal border-t-transparent rounded-full animate-spin" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent dark:border-violet-400" />
         </div>
       )}
 
@@ -66,10 +72,8 @@ export default function SummaryPage() {
           ))}
 
           <div className="glass-card p-5 flex flex-col items-center justify-center text-center min-h-[200px]">
-            <div className="w-10 h-10 rounded-full border-2 border-cf-teal/40 flex items-center justify-center mb-4">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-cf-teal">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full border-2 border-violet-400/45">
+              <Plus className="text-[var(--cf-accent-text)]" size={22} strokeWidth={SW} aria-hidden />
             </div>
             <p className="text-ink font-semibold mb-2 text-sm sm:text-base">Choose Another Provider</p>
             <p className="text-muted text-xs sm:text-sm mb-4">Compare a different provider side-by-side.</p>
@@ -93,11 +97,13 @@ export default function SummaryPage() {
           </div>
 
           <div className="flex justify-end mt-5 sm:mt-6">
-            <button type="button" onClick={() => navigate('/results')} className="text-muted text-sm flex items-center gap-1 hover:text-ink transition-colors">
+            <button
+              type="button"
+              onClick={() => navigate('/results')}
+              className="flex items-center gap-1 text-sm text-muted transition-colors hover:text-ink"
+            >
               Back to results
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRight size={16} strokeWidth={SW} aria-hidden />
             </button>
           </div>
         </>
@@ -108,13 +114,15 @@ export default function SummaryPage() {
 
 function ProviderCard({ clinic, isTop, onSelect }: { clinic: Clinic; isTop: boolean; onSelect: () => void }) {
   return (
-    <div className={`glass-card p-4 sm:p-5 flex flex-col ${isTop ? 'border-cf-teal/30 ring-1 ring-cf-teal/10' : ''}`}>
+    <div className={`glass-card flex flex-col p-4 sm:p-5 ${isTop ? 'border-violet-400/30 ring-1 ring-violet-500/10' : ''}`}>
       <div className="mb-4">
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          {isTop
-            ? <span className="text-amber-600 dark:text-amber-400" aria-hidden>🏆</span>
-            : <span className="text-amber-600 text-sm dark:text-amber-400" aria-hidden>⚠</span>}
-          <span className="text-ink font-semibold text-sm sm:text-base">{clinic.name}</span>
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          {isTop ? (
+            <Award className="shrink-0 text-amber-600 dark:text-amber-400" size={18} strokeWidth={SW} aria-hidden />
+          ) : (
+            <CircleDot className="shrink-0 text-muted" size={18} strokeWidth={SW} aria-hidden />
+          )}
+          <span className="text-sm font-semibold text-ink sm:text-base">{clinic.name}</span>
           {clinic.badges.includes('best-value') && <StatusBadge status="best-value" />}
           {clinic.badges.includes('high-visits') && <StatusBadge status="high-visits" />}
         </div>

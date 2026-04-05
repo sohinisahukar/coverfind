@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Award, ChevronRight, GitCompare, Hospital } from 'lucide-react';
 import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
 import {
@@ -37,6 +38,8 @@ function safeUrl(raw: string | undefined, fallbackName: string): string {
     return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
   }
 }
+
+const SW = 1.75;
 
 export default function ResultsPage() {
   const [searchParams] = useSearchParams();
@@ -122,13 +125,13 @@ export default function ResultsPage() {
     <div className="flex flex-1 flex-col md:flex-row min-h-0 overflow-hidden">
       <div className="md:hidden flex flex-col gap-1 px-4 py-2 border-b bg-results-mobile-bar">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-ink-muted text-sm font-medium min-w-0 truncate">
+          <span className="min-w-0 truncate text-xs font-bold uppercase leading-[1.35] tracking-tight text-ink-muted">
             Results for: {q || 'All'}{zip ? ` near ${zip}` : ''}
           </span>
         <button
           type="button"
           onClick={() => setFiltersOpen(o => !o)}
-          className="shrink-0 flex items-center gap-1.5 text-cf-teal text-sm border border-cf-teal/35 bg-white/80 px-3 py-1 rounded-lg dark:bg-slate-900/60 dark:border-teal-500/35"
+          className="text-link-brand flex shrink-0 items-center gap-1.5 rounded-lg border border-violet-400/35 bg-white/80 px-3 py-1 text-sm dark:border-violet-500/35 dark:bg-slate-900/60"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
@@ -173,7 +176,7 @@ export default function ResultsPage() {
           {selectedTier ? (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-1">
-                <span className="text-cf-teal text-xs font-medium truncate">{selectedTier.label}</span>
+                <span className="text-link-brand truncate text-xs font-medium">{selectedTier.label}</span>
                 <button
                   type="button"
                   onClick={() => setSelectedTier(null)}
@@ -189,7 +192,7 @@ export default function ResultsPage() {
             <button
               type="button"
               onClick={() => setInsuranceOpen(o => !o)}
-              className="text-cf-teal text-xs flex items-center gap-1 hover:text-cf-teal-bright"
+              className="text-link-brand flex items-center gap-1 text-xs hover:opacity-80"
             >
               {insuranceOpen ? '− Hide plans' : '+ Use Insurance'}
             </button>
@@ -207,11 +210,11 @@ export default function ResultsPage() {
                       setSelectedTier(tier);
                       setInsuranceOpen(false);
                     }}
-                    className="w-full text-left glass-card p-2.5 hover:border-cf-teal/30 transition-colors"
+                    className="w-full text-left glass-card p-2.5 transition-colors hover:border-violet-400/35"
                   >
                     <div className="flex items-center justify-between mb-0.5 gap-2">
                       <span className="text-ink text-xs font-medium truncate">{tier.label}</span>
-                      <span className="text-cf-teal text-xs shrink-0">{tier.coveragePct}%</span>
+                      <span className="text-link-brand shrink-0 text-xs">{tier.coveragePct}%</span>
                     </div>
                     <p className="text-muted text-xs">~${tier.avgPremium}/mo</p>
                   </button>
@@ -231,8 +234,9 @@ export default function ResultsPage() {
               }`}
             >
               <div className="hidden md:block space-y-2">
-                <h2 className="text-xl font-semibold text-ink">
-                  Results for: {q || 'All care'}{zip ? ` near ${zip}` : ''}
+                <h2 className="text-lg font-bold uppercase leading-[1.32] tracking-tight text-ink sm:text-xl sm:leading-[1.3]">
+                  Results for: {q || 'All care'}
+                  {zip ? ` near ${zip}` : ''}
                 </h2>
                 {usingDefaultLocation && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg px-3 py-1.5">
@@ -241,11 +245,11 @@ export default function ResultsPage() {
                 )}
                 <div className="flex flex-wrap items-center gap-2 mt-0.5">
                   <p className="text-muted text-sm">
-                    Recommended care: <span className="text-cf-teal font-medium">{q || 'Primary Care'}</span> · Based on
+                    Recommended care: <span className="text-link-brand font-medium">{q || 'Primary Care'}</span> · Based on
                     patient recovery data
                   </p>
                   {selectedTier && (
-                    <span className="text-xs rounded-full border border-cf-teal/25 bg-cf-teal/10 text-cf-teal px-2 py-0.5">
+                    <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-xs text-violet-800 dark:border-violet-400/25 dark:bg-violet-500/15 dark:text-violet-200">
                       {selectedTier.label} · {selectedTier.coveragePct}% covered
                     </span>
                   )}
@@ -268,7 +272,7 @@ export default function ResultsPage() {
 
               {loading && (
                 <div className="flex items-center justify-center py-20">
-                  <div className="w-8 h-8 border-2 border-cf-teal border-t-transparent rounded-full animate-spin" />
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent dark:border-violet-400" />
                 </div>
               )}
 
@@ -288,10 +292,8 @@ export default function ResultsPage() {
                 <>
                   <div className="glass-card p-4 bg-top-rec">
                     <div className="flex items-start gap-3">
-                      <div className="w-7 h-7 rounded-full bg-cf-teal/15 border border-cf-teal/35 flex items-center justify-center shrink-0 mt-0.5">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-cf-teal">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
+                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-violet-400/35 bg-violet-500/15">
+                        <Award className="text-[var(--cf-accent-text)]" size={17} strokeWidth={SW} aria-hidden />
                       </div>
                       <div>
                         <p className="text-ink font-semibold text-sm sm:text-base">Top Recommendation: {topClinic.name}</p>
@@ -335,10 +337,8 @@ export default function ResultsPage() {
             {comparing.length > 0 && (
               <div className="sticky bottom-0 z-10 shrink-0 bg-compare-strip px-4 md:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:pt-4 md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
-                      <path d="M12 2L2 7l10 5 10-5-10-5z" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                  <div className="bg-gradient-brand-br flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                    <GitCompare className="text-white" size={11} strokeWidth={2.25} aria-hidden />
                   </div>
                   <span className="text-muted text-xs sm:text-sm truncate">
                     Comparing{' '}
@@ -353,9 +353,7 @@ export default function ResultsPage() {
                   className="btn-primary text-xs sm:text-sm px-4 py-2 shrink-0 flex items-center gap-1.5"
                 >
                   Compare
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ChevronRight size={16} strokeWidth={SW} aria-hidden />
                 </button>
               </div>
             )}
@@ -384,14 +382,14 @@ function FilterSlider({ label, value, onChange, min, max, display }: {
   return (
     <div>
       <p className="text-muted text-xs mb-1">{label}</p>
-      {display && <p className="text-cf-teal text-xs font-medium mb-1.5">{display}</p>}
+      {display && <p className="text-link-brand mb-1.5 text-xs font-medium">{display}</p>}
       <input
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={e => onChange(Number(e.target.value))}
-        className="w-full accent-cf"
+        className="accent-brand w-full"
       />
     </div>
   );
@@ -413,10 +411,8 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
     <div className="glass-card p-4 md:p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <div className="bg-gradient-brand-br flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full">
+            <Hospital className="text-white" size={15} strokeWidth={SW} aria-hidden />
           </div>
           <span className="text-ink font-semibold text-sm sm:text-base">{clinic.name}</span>
           {isBestValue && <span className="badge-teal">Best Value</span>}
@@ -435,7 +431,7 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
           <p className="text-muted text-xs mb-1">Est. Cost</p>
           {hasDiscount ? (
             <>
-              <p className="font-semibold text-cf-teal text-sm">~${adjCost.toLocaleString()}</p>
+              <p className="text-link-brand text-sm font-semibold">~${adjCost.toLocaleString()}</p>
               <p className="text-muted text-xs line-through">~${fullCost.toLocaleString()}</p>
             </>
           ) : (
