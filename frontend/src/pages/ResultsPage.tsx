@@ -11,10 +11,11 @@
  *   4. Users toggle clinics into a compare set, then navigate to /compare
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
+import { VisitsIcon, RecoveryIcon, OutcomeIcon, BurdenIcon, CostIcon, MatchIcon } from '../components/MedicalIcons';
 import {
   fetchClinics,
   fetchInsuranceProviders,
@@ -339,12 +340,15 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center border-t border-slate-200/90 dark:border-slate-700/85 pt-4">
-        <Stat label="Avg Visits" value={String(clinic.avgVisitsNeeded)} />
-        <Stat label="Recovery" value={clinic.recoverySpeed} />
-        <Stat label="Outcome" value={clinic.outcomeQuality} />
-        <Stat label="Burden" value={clinic.treatmentBurden} badge />
+        <Stat label="Avg Visits" value={String(clinic.avgVisitsNeeded)} Icon={VisitsIcon} />
+        <Stat label="Recovery"   value={clinic.recoverySpeed}           Icon={RecoveryIcon} />
+        <Stat label="Outcome"    value={clinic.outcomeQuality}          Icon={OutcomeIcon} />
+        <Stat label="Burden"     value={clinic.treatmentBurden} badge   Icon={BurdenIcon} />
         <div>
-          <p className="text-muted text-xs mb-1">Est. Cost</p>
+          <p className="text-muted text-xs mb-1 flex items-center justify-center gap-1">
+            <CostIcon className="w-3 h-3 shrink-0" />
+            Est. Cost
+          </p>
           {hasDiscount ? (
             <>
               <p className="font-semibold text-cf-teal text-sm">~${adjCost.toLocaleString()}</p>
@@ -356,7 +360,10 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
         </div>
         {clinic.compositeScore != null && (
           <div>
-            <p className="text-muted text-xs mb-1">Match Score</p>
+            <p className="text-muted text-xs mb-1 flex items-center justify-center gap-1">
+              <MatchIcon className="w-3 h-3 shrink-0" />
+              Match Score
+            </p>
             <p className="font-semibold text-cf-teal text-sm">{clinic.compositeScore}<span className="text-muted text-xs font-normal">/100</span></p>
           </div>
         )}
@@ -458,11 +465,19 @@ function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails
   );
 }
 
-function Stat({ label, value, badge }: { label: string; value: string; badge?: boolean }) {
+function Stat({ label, value, badge, Icon }: {
+  label: string;
+  value: string;
+  badge?: boolean;
+  Icon?: React.FC<{ className?: string }>;
+}) {
   const isBad = value === 'high';
   return (
     <div>
-      <p className="text-muted text-xs mb-1">{label}</p>
+      <p className="text-muted text-xs mb-1 flex items-center gap-1">
+        {Icon && <Icon className="w-3 h-3 shrink-0" />}
+        {label}
+      </p>
       {badge ? (
         <span className={isBad ? 'badge-red' : 'badge-green'}>{value}</span>
       ) : (
