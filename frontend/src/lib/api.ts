@@ -54,22 +54,38 @@ async function apiFetch<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export interface ClinicsResult {
+  data:       Clinic[];
+  total:      number;
+  pagination: { total: number; limit: number; offset: number; hasMore: boolean };
+  center:     { lat: number; lng: number };
+}
+
 export async function fetchClinics(params: {
   q?: string;
+  state?: string;
   priorityWeight?: number;
   maxDistanceMi?: number;
   treatmentBurden?: string;
   lat?: number;
   lng?: number;
+  limit?: number;
+  offset?: number;
 }): Promise<Clinic[]> {
   const qs = new URLSearchParams();
-  if (params.q) qs.set('q', params.q);
+  if (params.q)                          qs.set('q',               params.q);
+  if (params.state)                      qs.set('state',           params.state);
   if (params.priorityWeight !== undefined) qs.set('priorityWeight', String(params.priorityWeight));
-  if (params.maxDistanceMi !== undefined) qs.set('maxDistanceMi', String(params.maxDistanceMi));
-  if (params.treatmentBurden) qs.set('treatmentBurden', params.treatmentBurden);
-  if (params.lat !== undefined) qs.set('lat', String(params.lat));
-  if (params.lng !== undefined) qs.set('lng', String(params.lng));
-  return apiFetch<Clinic[]>(`${BASE}/api/clinics/search?${qs}`);
+  if (params.maxDistanceMi  !== undefined) qs.set('maxDistanceMi',  String(params.maxDistanceMi));
+  if (params.treatmentBurden)            qs.set('treatmentBurden', params.treatmentBurden);
+  if (params.lat !== undefined)          qs.set('lat',             String(params.lat));
+  if (params.lng !== undefined)          qs.set('lng',             String(params.lng));
+  if (params.limit  !== undefined)       qs.set('limit',           String(params.limit));
+  if (params.offset !== undefined)       qs.set('offset',          String(params.offset));
+
+  // Backend now returns { data, total, pagination, center } — extract data for backwards compat
+  const result = await apiFetch<ClinicsResult>(`${BASE}/api/clinics/search?${qs}`);
+  return result.data;
 }
 
 export async function fetchCompare(ids: string[]): Promise<Clinic[]> {
@@ -93,18 +109,28 @@ export interface InsuranceTier {
 
 export async function fetchInsuranceTiers(state?: string): Promise<{ state: string | null; tiers: InsuranceTier[] }> {
   const qs = state ? `?state=${state}` : '';
-  return apiFetch(`${BASE}/api/insurance${qs}`);
+  return apiFetch(`${BASE}/api/insurance/tiers${qs}`);
 }
 
-export async function zipToCoords(zip: string): Promise<{ lat: number; lng: number } | null> {
+export interface GeoResult {
+  zip: string;
+  lat: number;
+  lng: number;
+  city: string;
+  state: string;
+  county: string;
+  countyFips: string;
+}
+
+/**
+ * Resolve a ZIP code to coordinates using our own backend geo endpoint.
+ * No external API dependency — sourced from the clinic DB.
+ * Returns null if the ZIP is not found or invalid.
+ */
+export async function zipToCoords(zip: string): Promise<GeoResult | null> {
   if (!/^\d{5}$/.test(zip.trim())) return null;
   try {
-    const res = await fetch(`https://api.zippopotam.us/us/${zip.trim()}`);
-    if (!res.ok) return null;
-    const data = await res.json() as { places: Array<{ latitude: string; longitude: string }> };
-    const place = data.places?.[0];
-    if (!place) return null;
-    return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
+    return await apiFetch<GeoResult>(`${BASE}/api/geo/zip/${zip.trim()}`);
   } catch {
     return null;
   }

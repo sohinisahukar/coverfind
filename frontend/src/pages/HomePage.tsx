@@ -20,15 +20,17 @@ export default function HomePage() {
 
   const handleSearch = async (searchQuery = query) => {
     const qs = new URLSearchParams({
-      q: searchQuery,
-      zip: location,
+      q:        searchQuery,
+      zip:      location,
       priority: String(priority),
     });
     if (location.trim()) {
-      const coords = await zipToCoords(location);
-      if (coords) {
-        qs.set('lat', String(coords.lat));
-        qs.set('lng', String(coords.lng));
+      const geo = await zipToCoords(location);
+      if (geo) {
+        qs.set('lat',        String(geo.lat));
+        qs.set('lng',        String(geo.lng));
+        qs.set('state',      geo.state);
+        qs.set('countyFips', geo.countyFips);
       }
     }
     navigate(`/results?${qs}`);

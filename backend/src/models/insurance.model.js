@@ -1,15 +1,4 @@
-import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.resolve(__dirname, '../../data/careculator.db');
-
-let _db = null;
-function db() {
-  if (!_db) _db = new Database(DB_PATH, { readonly: true });
-  return _db;
-}
+import { getDb as db } from '../services/dataLayer.service.js';
 
 /**
  * Return coverage tier summary for a state (or national if no state given).
