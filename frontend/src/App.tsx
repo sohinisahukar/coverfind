@@ -53,15 +53,19 @@ export default function App() {
           id="app-scroll-root"
           className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-smooth"
         >
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/results" element={<ResultsPage />} />
-            <Route path="/compare" element={<ComparePage />} />
-            <Route path="/compare/summary" element={<SummaryPage />} />
-          </Routes>
+          {/* flex-1 wrapper pushes footer to the bottom of the page content */}
+          <div className="flex min-h-full flex-1 flex-col">
+            <div className="flex flex-1 flex-col">
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/results" element={<ResultsPage />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/compare/summary" element={<SummaryPage />} />
+              </Routes>
+            </div>
+            <Footer />
+          </div>
         </main>
-
-        <Footer />
       </div>
 
       {/* Toast notifications (errors, confirmations) */}

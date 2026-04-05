@@ -90,7 +90,7 @@
       dark:border-slate-700/80 dark:bg-slate-950/80 dark:shadow-black/35;
   }
   .surface-footer {
-    @apply border-t border-slate-200/90 bg-white/80 backdrop-blur-md dark:border-slate-700/80 dark:bg-slate-950/90;
+    @apply border-t border-slate-200/60 dark:border-slate-700/50;
   }
 
   .bg-results-mobile-bar {
