@@ -1,18 +1,20 @@
-import { createRequire } from 'module';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/**
+ * insurance.controller.js — HTTP handlers for insurance endpoints.
+ *
+ * Each function maps to a route in insurance.routes.js.
+ * Delegates to insurance.service.js (plans, rates) and insurance.model.js
+ * (tier summaries, states, provider wizard data).
+ */
+
 import { getTierSummary, getAvailableStates } from '../models/insurance.model.js';
 import {
   listPlans,
   getPlanById,
   getPlansForClinic,
   getRatesForPlan,
+  getProvidersForWizard,
 } from '../services/insurance.service.js';
 import { logger } from '../utils/logger.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-const require    = createRequire(import.meta.url);
 
 // ---------------------------------------------------------------------------
 // GET /api/insurance
@@ -34,9 +36,11 @@ export async function list(req, res) {
 // Shape: [ { id, name, policies: [ { id, name, type } ] } ]
 // ---------------------------------------------------------------------------
 export async function listProviders(req, res) {
-  logger.info('insurance.listProviders');
-  const dataPath = path.resolve(__dirname, '../../data/insuranceProviders.json');
-  const providers = require(dataPath);
+  const { state } = req.query;
+  logger.info(`insurance.listProviders  state=${state || 'all'}`);
+
+  const providers = getProvidersForWizard(state || null);
+
   logger.success(`insurance.listProviders  → ${providers.length} provider(s)`);
   res.json(providers);
 }

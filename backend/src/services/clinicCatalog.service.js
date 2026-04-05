@@ -11,7 +11,7 @@
  *   clinics.controller → HTTP concerns only
  */
 
-import { queryClinics, getClinicById as _getClinicById } from '../models/clinic.model.js';
+import { queryClinics, getClinicById as _getClinicById, getTopSpecialties } from '../models/clinic.model.js';
 import { haversine } from '../utils/haversine.js';
 
 // Default center: ZIP 60616 (IIT / Bridgeport, Chicago, IL)
@@ -23,16 +23,16 @@ const MAX_LIMIT     = 200;
 
 /**
  * Quick-search preset tags shown in the recommendations UI.
- * Populated from the backend so the frontend stays in sync.
+ * Derived from the most common specialties in the clinics table.
+ * Cached after first call so the SQL only runs once.
  */
-export const QUICK_SEARCH_TAGS = [
-  'Primary Care',
-  'Urgent Care',
-  'Dental',
-  'Pediatrics',
-  'Behavioral Health',
-  "Women's Health",
-];
+let _quickSearchTagsCache = null;
+export function getQuickSearchTags() {
+  if (!_quickSearchTagsCache) {
+    _quickSearchTagsCache = getTopSpecialties(6);
+  }
+  return _quickSearchTagsCache;
+}
 
 // ---------------------------------------------------------------------------
 // Search
@@ -94,11 +94,12 @@ export function searchClinics(query = {}) {
   }));
 
   // ── 3. Distance filter ────────────────────────────────────────────────────
-  if (maxDistanceMi != null && maxDistanceMi !== '') {
-    const maxDist = Number(maxDistanceMi);
-    if (!isNaN(maxDist) && maxDist > 0) {
-      clinics = clinics.filter(c => c.distanceMiles <= maxDist);
-    }
+  const DEFAULT_MAX_DISTANCE_MI = 100;
+  const maxDist = (maxDistanceMi != null && maxDistanceMi !== '')
+    ? Number(maxDistanceMi)
+    : DEFAULT_MAX_DISTANCE_MI;
+  if (!isNaN(maxDist) && maxDist > 0) {
+    clinics = clinics.filter(c => c.distanceMiles <= maxDist);
   }
 
   // ── 4. Treatment burden filter ────────────────────────────────────────────
@@ -178,23 +179,38 @@ export function compareClinics(ids = []) {
 // ---------------------------------------------------------------------------
 
 /**
- * Infer a specialty from a free-text query for the recommendations endpoint.
+ * Infer a specialty from a free-text query by searching the keywords
+ * stored in the clinics table. Finds the most common specialty among
+ * clinics whose keywords match the query terms.
  *
  * @param {string} query
  * @returns {{ specialty: string, condition: string }}
  */
 export function getRecommendationForQuery(query = '') {
-  const q = query.toLowerCase();
+  if (!query.trim()) return { specialty: 'Primary Care', condition: query };
 
-  let specialty = 'Primary Care';
+  // Find clinics matching the query and count their specialties
+  const matches = queryClinics({ q: query });
 
-  if      (/knee|back|shoulder|physical.?therapy|rehab|joint/.test(q))  specialty = 'Physical Therapy';
-  else if (/skin|rash|acne|eczema|dermatol/.test(q))                    specialty = 'Dermatology';
-  else if (/teeth|tooth|dental|cleaning|cavity|gum/.test(q))            specialty = 'Dental';
-  else if (/urgent|emergency|cut|fever|sprain/.test(q))                 specialty = 'Urgent Care';
-  else if (/child|pedi|kid|infant|baby/.test(q))                        specialty = 'Pediatrics';
-  else if (/mental|anxiety|depress|behav|psych|counsel/.test(q))        specialty = 'Behavioral Health';
-  else if (/women|prenatal|obgyn|ob-gyn|pregnancy/.test(q))             specialty = "Women's Health";
+  if (matches.length === 0) {
+    return { specialty: 'Primary Care', condition: query };
+  }
+
+  // Tally specialties across matching clinics
+  const counts = {};
+  for (const clinic of matches) {
+    for (const spec of clinic.specialties || []) {
+      counts[spec] = (counts[spec] || 0) + 1;
+    }
+  }
+
+  // Return the most common specialty (excluding "Primary Care" if there's
+  // a more specific match, since most clinics have Primary Care)
+  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  let specialty = sorted[0]?.[0] || 'Primary Care';
+  if (specialty === 'Primary Care' && sorted.length > 1) {
+    specialty = sorted[1][0];
+  }
 
   return { specialty, condition: query };
 }

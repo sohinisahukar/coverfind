@@ -12,7 +12,7 @@ import {
   listPlans        as _listPlans,
   getRatesForPlan  as _getRatesForPlan,
 } from '../models/provider.model.js';
-import { getProviders as _getProviders } from '../models/insurance.model.js';
+import { getProviders as _getProviders, getProvidersForWizard as _getProvidersForWizard } from '../models/insurance.model.js';
 
 /**
  * List insurance plans with optional filters and pagination.
@@ -90,6 +90,14 @@ export function getRatesForPlan(planId, filters = {}) {
  */
 export function getProviders(state = null) {
   return _getProviders(state || null);
+}
+
+/**
+ * Return issuers in the wizard-friendly shape:
+ *   [ { id, name, policies: [{ id, name, type }] } ]
+ */
+export function getProvidersForWizard(state = null) {
+  return _getProvidersForWizard(state || null);
 }
 
 export function getPlansForClinic(clinicId, { limit, offset } = {}) {
