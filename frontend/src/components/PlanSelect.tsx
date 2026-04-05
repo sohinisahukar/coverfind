@@ -58,7 +58,7 @@ export default function PlanSelect({
           aria-controls={listId}
           aria-labelledby={`${btnId}-label`}
           onClick={() => setOpen(o => !o)}
-          className={`plan-select-trigger flex w-full min-h-[2.875rem] items-center justify-between gap-2 rounded-xl border-2 bg-white px-4 py-2.5 pr-10 text-left text-sm transition-[border-color,box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-teal/25 dark:bg-slate-950 dark:focus-visible:ring-teal-500/25 ${
+          className={`plan-select-trigger flex w-full min-h-[2.875rem] items-center justify-between gap-2 rounded-xl border-2 bg-white px-4 py-2.5 pr-10 text-left text-sm transition-[border-color,box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-teal/25 dark:bg-[#0b1014] dark:focus-visible:ring-teal-500/25 ${
             open
               ? 'border-cf-teal shadow-sm shadow-teal-900/10 dark:border-teal-400/70 dark:shadow-teal-900/20'
               : 'border-slate-200 focus-visible:border-cf-teal dark:border-slate-600 dark:focus-visible:border-teal-400'
@@ -86,7 +86,7 @@ export default function PlanSelect({
             id={listId}
             role="listbox"
             aria-labelledby={`${btnId}-label`}
-            className="absolute z-50 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-slate-200/95 bg-white py-1 shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 dark:border-slate-600/90 dark:bg-slate-900 dark:shadow-black/50 dark:ring-white/10"
+            className="absolute z-50 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-slate-200/95 bg-white py-1 shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 dark:border-slate-600/90 dark:bg-[#0b1014] dark:shadow-black/80 dark:ring-white/10"
           >
             {policies.map(pol => {
               const isSel = pol.id === value;

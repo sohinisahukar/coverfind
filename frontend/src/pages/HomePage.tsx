@@ -56,16 +56,16 @@ const FEATURES = [
       </svg>
     ),
     title: 'Understand Your Costs',
-    desc: 'See estimated out-of-pocket before you go. No bill shock.',
+    desc: 'See estimated total costs and what your plan may cover—before you go.',
   },
   {
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
       </svg>
     ),
     title: 'Better Outcomes',
-    desc: 'Ranked by recovery speed and clinical quality, not just price.',
+    desc: 'Compare recovery speed and expected outcomes to make informed choices.',
   },
   {
     icon: (
@@ -74,9 +74,22 @@ const FEATURES = [
       </svg>
     ),
     title: 'Less Time, Less Burden',
-    desc: 'Fewer follow-up visits means less disruption to your life.',
+    desc: 'Fewer visits and lower treatment burden—so you can focus on getting better.',
   },
 ];
+
+/* ── Quick search subtitle map ──────────────────────────────────────────── */
+const CHIP_SUBTITLES: Record<string, string> = {
+  'Urgent Care': 'Immediate, non-life-threatening',
+  'Primary Care': 'General health & checkups',
+  'Dental': 'Cleanings, pain, procedures',
+  'Dental Cleaning': 'Routine dental care',
+  'Behavioral Health': 'Mental health & support',
+  'Pediatrics': 'Care for infants, children, teens',
+  'Physical Therapy': 'Injury recovery & rehab',
+  'Skin Rash': 'Dermatology & skin care',
+  "Women's Health": 'Gynecology & reproductive',
+};
 
 /* ── Back arrow icon ────────────────────────────────────────────────────── */
 const BackArrow = () => (
@@ -248,6 +261,13 @@ export default function HomePage() {
         animate="show"
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
       >
+        {/* SMARTER CARE · LOWER RISK badge */}
+        <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 mb-4">
+          <span className="inline-flex items-center rounded-full border border-slate-400/40 bg-slate-900/60 px-4 py-1 text-[11px] font-semibold uppercase tracking-widest text-slate-300 dark:border-slate-500/40 dark:bg-black/40 dark:text-slate-300">
+            Smarter Care · Lower Risk
+          </span>
+        </motion.div>
+
         {/* Headline — unchanged */}
         <motion.h1
           variants={fadeUp}
@@ -269,7 +289,7 @@ export default function HomePage() {
 
       {/* ── Wizard card ─────────────────────────────────────────────────── */}
       <motion.div
-        className="relative z-10 glass-card w-full max-w-xl sm:max-w-2xl shadow-lg shadow-slate-900/5 dark:shadow-black/30 rounded-2xl"
+        className="relative z-10 glass-card w-full max-w-xl sm:max-w-2xl shadow-[0_0_40px_rgba(20,184,166,0.12)] dark:shadow-[0_0_60px_rgba(20,184,166,0.15)] ring-1 ring-cf-teal/10 rounded-2xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.25, ease: EASE_STANDARD } }}
       >
@@ -324,9 +344,12 @@ export default function HomePage() {
               {/* ── Step 1: basics ── */}
               {step === 'basics' && (
                 <>
-                  <div className="border-b border-slate-200/80 pb-4 dark:border-slate-700/70">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-cf-teal dark:text-teal-300/90">Step 1</p>
-                    <h2 className="text-xl font-bold text-ink tracking-tight sm:text-2xl">Search for care</h2>
+                  <div className="border-b border-slate-200/80 pb-4 dark:border-slate-700/70 flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-cf-teal dark:text-teal-300/90">Start Here</p>
+                      <h2 className="text-xl font-bold text-ink tracking-tight sm:text-2xl">Search for care</h2>
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Step 1 of 2</span>
                   </div>
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-3">
                     <div className="min-w-0 flex-1">
@@ -469,7 +492,8 @@ export default function HomePage() {
                           placeholder="Search insurer…"
                           value={providerSearch}
                           onChange={e => setProviderSearch(e.target.value)}
-                          className="home-search-input pl-9 pr-4 py-2.5 text-sm"
+                          className="home-search-input pr-4 py-2.5 text-sm"
+                          style={{ paddingLeft: '2.5rem' }}
                         />
                         {providerSearch && (
                           <button type="button" onClick={() => setProviderSearch('')}
@@ -617,50 +641,58 @@ export default function HomePage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0, transition: { delay: 0.45, duration: 0.45, ease: EASE_STANDARD } }}
       >
-        <p className="text-center text-xs font-medium text-muted uppercase tracking-wide mb-3">Quick searches</p>
+        <p className="text-center text-[10px] font-bold text-muted uppercase tracking-widest mb-3">Quick Searches</p>
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-          {quickTags.map((tag, i) => (
-            <motion.button
-              key={tag}
-              type="button"
-              onClick={() => quickNavigate(tag)}
-              className="group inline-flex items-center gap-2 border border-slate-200/90 bg-white/70 text-slate-700 text-xs sm:text-sm px-4 py-2 rounded-full hover:border-cf-teal/50 hover:text-cf-teal transition-colors dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:text-teal-300"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1, transition: { delay: 0.5 + i * 0.07, duration: 0.3 } }}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-            >
-              <span className="text-cf-teal dark:text-teal-400 group-hover:text-cf-teal">
-                <SpecialtyIcon specialty={tag} className="w-3.5 h-3.5" />
-              </span>
-              {tag}
-            </motion.button>
-          ))}
+          {quickTags.map((tag, i) => {
+            const subtitle = CHIP_SUBTITLES[tag];
+            return (
+              <motion.button
+                key={tag}
+                type="button"
+                onClick={() => quickNavigate(tag)}
+                className="group inline-flex items-center gap-2.5 border border-slate-200/60 bg-white/60 dark:border-slate-700/60 dark:bg-slate-900/70 text-left px-3.5 py-2.5 rounded-2xl hover:border-cf-teal/50 hover:bg-teal-50/30 dark:hover:bg-teal-950/30 transition-colors"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1, transition: { delay: 0.5 + i * 0.07, duration: 0.3 } }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-teal-100/80 dark:bg-teal-900/50 text-cf-teal dark:text-teal-400">
+                  <SpecialtyIcon specialty={tag} className="w-4 h-4" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-xs font-semibold text-ink group-hover:text-cf-teal dark:group-hover:text-teal-300 transition-colors leading-tight">{tag}</p>
+                  {subtitle && <p className="text-[10px] text-muted leading-tight mt-0.5 whitespace-nowrap">{subtitle}</p>}
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </motion.section>
 
       {/* ── Feature cards ───────────────────────────────────────────────── */}
       <motion.section
-        className="relative z-10 mt-10 sm:mt-12 w-full max-w-xl sm:max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-4"
+        className="relative z-10 mt-6 sm:mt-8 w-full max-w-xl sm:max-w-2xl"
         initial="hidden"
         animate="show"
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.6 } } }}
+        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.65 } } }}
       >
-        {FEATURES.map(f => (
-          <motion.div
-            key={f.title}
-            variants={fadeUp}
-            className="glass-card rounded-2xl px-5 py-5 text-center flex flex-col items-center gap-3 hover:shadow-md transition-shadow"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-cf-teal dark:bg-teal-950/50 dark:text-teal-400">
-              {f.icon}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-ink mb-1">{f.title}</p>
-              <p className="text-[12px] text-ink-muted leading-relaxed">{f.desc}</p>
-            </div>
-          </motion.div>
-        ))}
+        <div className="glass-card rounded-2xl divide-y divide-slate-200/60 dark:divide-slate-700/50 overflow-hidden sm:divide-y-0 sm:grid sm:grid-cols-3 sm:divide-x">
+          {FEATURES.map(f => (
+            <motion.div
+              key={f.title}
+              variants={fadeUp}
+              className="flex items-start gap-3.5 px-5 py-4"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50/80 dark:bg-teal-900/40 text-cf-teal dark:text-teal-400 mt-0.5">
+                {f.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-ink mb-1 leading-tight">{f.title}</p>
+                <p className="text-[11px] text-ink-muted leading-relaxed">{f.desc}</p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </motion.section>
     </div>
   );

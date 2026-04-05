@@ -26,6 +26,12 @@ export default function Navbar() {
       <div className={`hidden sm:flex items-center gap-5 ${isHome ? 'mr-24' : ''}`}>
         <NavLink to="/how-it-works" className={({ isActive }) => `text-sm transition-colors whitespace-nowrap ${isActive ? 'text-cf-teal font-medium' : 'text-ink-muted hover:text-ink'}`}>How it works</NavLink>
         <NavLink to="/about-estimates" className={({ isActive }) => `text-sm transition-colors whitespace-nowrap ${isActive ? 'text-cf-teal font-medium' : 'text-ink-muted hover:text-ink'}`}>About estimates</NavLink>
+        <button
+          type="button"
+          className="rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-1.5 text-sm font-medium text-ink hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap"
+        >
+          Sign in
+        </button>
       </div>
 
       {/* Hanging bulb — only on homepage, desktop */}
