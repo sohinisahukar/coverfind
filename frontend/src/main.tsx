@@ -1,3 +1,13 @@
+/**
+ * main.tsx — React application entry point.
+ *
+ * Wraps the App in:
+ *   StrictMode     -> development-only double-render checks
+ *   ErrorBoundary  -> catches render errors and shows a fallback UI
+ *   BrowserRouter  -> enables client-side routing (react-router-dom)
+ *   ThemeProvider   -> dark/light theme context (persisted in localStorage)
+ */
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';

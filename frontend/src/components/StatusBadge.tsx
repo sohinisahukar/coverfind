@@ -1,3 +1,14 @@
+/**
+ * StatusBadge.tsx — Coloured pill badge for categorical values.
+ *
+ * Maps status strings (from the API) to colour classes and emoji icons.
+ * Semantics: "high" = bad (red), "low" = good (green) — correct for
+ * treatment burden, per-visit cost tier, etc.
+ *
+ * IMPORTANT: For outcome quality, "high" is GOOD. Use the dedicated
+ * OutcomeQualityBadge in ComparePage instead of this component.
+ */
+
 type Status =
   | 'fast'
   | 'slow'

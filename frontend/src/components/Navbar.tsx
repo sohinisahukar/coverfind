@@ -1,3 +1,11 @@
+/**
+ * Navbar.tsx — Top navigation bar with logo, theme toggle, and mobile menu.
+ *
+ * - Desktop: shows dark/light toggle + "Try Demo" button inline.
+ * - Mobile:  collapses into a hamburger menu; theme toggle stays visible.
+ * - "Try Demo" navigates to /results with no search params (shows all clinics).
+ */
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';

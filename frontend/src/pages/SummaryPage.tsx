@@ -1,3 +1,13 @@
+/**
+ * SummaryPage.tsx — Card-grid overview of compared clinics.
+ *
+ * URL: /compare/summary?ids=clinicA,clinicB
+ *
+ * Shows each clinic as a self-contained card with key metrics and a
+ * "Select" action. Useful as a quick visual scan before diving into
+ * the detailed side-by-side on ComparePage.
+ */
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';

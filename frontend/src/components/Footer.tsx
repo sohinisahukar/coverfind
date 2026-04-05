@@ -1,3 +1,13 @@
+/**
+ * Footer.tsx — Site-wide footer with disclaimer and "Back to top" button.
+ *
+ * The "Back to top" button is hidden on the home page (/) since users
+ * don't scroll there. On all other pages it scrolls both the
+ * #app-scroll-root container and any nested overflow regions.
+ */
+
+import { useLocation } from 'react-router-dom';
+
 const SCROLL_ROOT_ID = 'app-scroll-root';
 
 /**
@@ -26,6 +36,9 @@ export function scrollAppToTop() {
 }
 
 export default function Footer() {
+  const { pathname } = useLocation();
+  const isHome = pathname === '/';
+
   return (
     <footer className="surface-footer shrink-0">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
@@ -37,18 +50,20 @@ export default function Footer() {
               and licensed providers.
             </p>
           </div>
-          <div className="flex sm:flex-col sm:items-end gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => scrollAppToTop()}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white/70 px-3 py-2 text-xs font-medium text-ink shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900/60 dark:hover:bg-slate-800"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-              Back to top
-            </button>
-          </div>
+          {!isHome && (
+            <div className="flex sm:flex-col sm:items-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => scrollAppToTop()}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white/70 px-3 py-2 text-xs font-medium text-ink shadow-sm transition-colors hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900/60 dark:hover:bg-slate-800"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+                Back to top
+              </button>
+            </div>
+          )}
         </div>
         <p className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-700/80 text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500">
           © {new Date().getFullYear()} Careculator
