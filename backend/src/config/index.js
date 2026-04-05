@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * Absolute path to the SQLite database file.
  * Resolved relative to this config file so it works regardless of CWD.
  */
-export const DB_PATH = path.resolve(__dirname, '../data/careculator.db');
+export const DB_PATH = path.resolve(__dirname, '../../data/careculator.db');
 
 /** Default page size for paginated endpoints. */
 export const DEFAULT_PAGE_SIZE = 50;

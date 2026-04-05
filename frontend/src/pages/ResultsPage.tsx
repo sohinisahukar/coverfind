@@ -18,7 +18,6 @@ import StatusBadge from '../components/StatusBadge';
 import {
   fetchClinics,
   fetchInsuranceProviders,
-  fetchInsuranceTiers,
   findProviderById,
   type Clinic,
   type InsuranceProvider,
@@ -38,16 +37,13 @@ export default function ResultsPage() {
   const lat = searchParams.get('lat') ? Number(searchParams.get('lat')) : undefined;
   const lng = searchParams.get('lng') ? Number(searchParams.get('lng')) : undefined;
 
-  const [allClinics, setAllClinics] = useState<Clinic[]>([]);
+  const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [comparing, setComparing] = useState<string[]>([]);
-  const [distance, setDistance] = useState(25);
+  const [distance, setDistance] = useState(50);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [insuranceProviders, setInsuranceProviders] = useState<InsuranceProvider[]>([]);
-  const [insuranceOpen, setInsuranceOpen] = useState(false);
-  const [insuranceTiers, setInsuranceTiers] = useState<InsuranceTier[]>([]);
-  const [selectedTier, setSelectedTier] = useState<InsuranceTier | null>(null);
 
   // Resolve the insurance context from URL params + provider list.
   // Only populated when the user came through the "Yes, add insurance" wizard flow.
@@ -71,34 +67,20 @@ export default function ResultsPage() {
       .catch(() => setInsuranceProviders([]));
   }, []);
 
+  // Re-fetch whenever query params OR distance changes so the backend sorts
+  // over only clinics within the chosen radius (preserving correct rank order).
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchClinics({ q, priorityWeight: priority, lat, lng })
-      .then(data => {
-        setAllClinics(data);
-      })
+    fetchClinics({ q, priorityWeight: priority, lat, lng, maxDistanceMi: distance })
+      .then(data => setClinics(data))
       .catch(err => {
         const msg = (err as Error).message;
         setError(msg);
         toast.error(msg, { duration: 6000 });
       })
       .finally(() => setLoading(false));
-  }, [q, priority, lat, lng]);
-
-  useEffect(() => {
-    if (!insuranceOpen || insuranceTiers.length > 0) return;
-    fetchInsuranceTiers()
-      .then(data => setInsuranceTiers(data.tiers))
-      .catch(() => {});
-  }, [insuranceOpen, insuranceTiers.length]);
-
-  // Client-side distance filter — backend returns all clinics within 100mi,
-  // this slider narrows them further without a new API call.
-  const clinics = useMemo(
-    () => allClinics.filter(c => (c.distanceMiles ?? 0) <= distance),
-    [allClinics, distance],
-  );
+  }, [q, priority, lat, lng, distance]);
 
   const toggleCompare = (id: string) => {
     setComparing(prev =>
@@ -159,58 +141,6 @@ export default function ResultsPage() {
           max={100}
           display={`Up to ${distance} mi`}
         />
-        <div>
-          <p className="text-muted text-xs mb-2">Insurance</p>
-          {selectedTier ? (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-cf-teal text-xs font-medium truncate">{selectedTier.label}</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTier(null)}
-                  className="text-muted text-xs hover:text-ink shrink-0"
-                >
-                  Clear
-                </button>
-              </div>
-              <p className="text-muted text-xs">{selectedTier.coveragePct}% coverage</p>
-              <p className="text-muted text-xs">~${selectedTier.avgPremium}/mo</p>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setInsuranceOpen(o => !o)}
-              className="text-cf-teal text-xs flex items-center gap-1 hover:text-cf-teal-bright"
-            >
-              {insuranceOpen ? '− Hide plans' : '+ Use Insurance'}
-            </button>
-          )}
-          {insuranceOpen && !selectedTier && (
-            <div className="mt-3 space-y-2">
-              {insuranceTiers.length === 0 ? (
-                <div className="text-muted text-xs">Loading…</div>
-              ) : (
-                insuranceTiers.map(tier => (
-                  <button
-                    key={tier.tier}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTier(tier);
-                      setInsuranceOpen(false);
-                    }}
-                    className="w-full text-left glass-card p-2.5 hover:border-cf-teal/30 transition-colors"
-                  >
-                    <div className="flex items-center justify-between mb-0.5 gap-2">
-                      <span className="text-ink text-xs font-medium truncate">{tier.label}</span>
-                      <span className="text-cf-teal text-xs shrink-0">{tier.coveragePct}%</span>
-                    </div>
-                    <p className="text-muted text-xs">~${tier.avgPremium}/mo</p>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-        </div>
       </aside>
 
       <div className="flex flex-1 flex-col min-h-0 min-w-0">
@@ -230,11 +160,7 @@ export default function ResultsPage() {
                     Recommended care: <span className="text-cf-teal font-medium">{q || 'Primary Care'}</span> · Based on
                     patient recovery data
                   </p>
-                  {selectedTier && (
-                    <span className="text-xs rounded-full border border-cf-teal/25 bg-cf-teal/10 text-cf-teal px-2 py-0.5">
-                      {selectedTier.label} · {selectedTier.coveragePct}% covered
-                    </span>
-                  )}
+
                 </div>
                 {insuranceContext && (
                   <p className="text-sm text-subtle border border-slate-200/90 dark:border-slate-600/60 rounded-xl px-3 py-2 bg-white/40 dark:bg-slate-900/40">
@@ -295,7 +221,7 @@ export default function ResultsPage() {
                     clinic={topClinic}
                     isComparing={comparing.includes(topClinic.id)}
                     onToggleCompare={() => toggleCompare(topClinic.id)}
-                    insuranceTier={selectedTier}
+                    insuranceTier={null}
                     coveragePct={insuranceContext?.coveragePct}
                   />
 
@@ -308,7 +234,7 @@ export default function ResultsPage() {
                           isComparing={comparing.includes(clinic.id)}
                           onToggleCompare={() => toggleCompare(clinic.id)}
                           onViewDetails={() => navigate(`/compare?ids=${topClinic.id},${clinic.id}`)}
-                          insuranceTier={selectedTier}
+                          insuranceTier={null}
                           coveragePct={insuranceContext?.coveragePct}
                         />
                       ))}
@@ -329,7 +255,7 @@ export default function ResultsPage() {
                   <span className="text-muted text-xs sm:text-sm truncate">
                     Comparing{' '}
                     <span className="text-ink font-medium">
-                      {allClinics.filter(c => comparing.includes(c.id)).map(c => c.name).join(', ')}
+                      {clinics.filter((c: Clinic) => comparing.includes(c.id)).map((c: Clinic) => c.name).join(', ')}
                     </span>
                   </span>
                 </div>

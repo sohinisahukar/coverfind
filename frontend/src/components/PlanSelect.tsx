@@ -86,7 +86,7 @@ export default function PlanSelect({
             id={listId}
             role="listbox"
             aria-labelledby={`${btnId}-label`}
-            className="absolute z-50 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-slate-200/95 bg-white/98 py-1 shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 backdrop-blur-md dark:border-slate-600/90 dark:bg-slate-900/98 dark:shadow-black/50 dark:ring-white/10"
+            className="absolute z-50 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-slate-200/95 bg-white py-1 shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 dark:border-slate-600/90 dark:bg-slate-900 dark:shadow-black/50 dark:ring-white/10"
           >
             {policies.map(pol => {
               const isSel = pol.id === value;

@@ -7,16 +7,17 @@
  */
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import bulbLight from '../assets/light-bulb-icon.svg';
+import bulbDark from '../assets/light-bulb-icon-black.svg';
 
 export default function Navbar() {
-  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="surface-nav flex items-center justify-between px-4 sm:px-8 py-4 relative">
+    <nav className="surface-nav flex items-center justify-between px-4 sm:px-8 py-4 relative overflow-visible">
       <Link to="/" className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-cf-teal dark:ring-offset-slate-950" aria-label="Careculator home">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
@@ -26,75 +27,34 @@ export default function Navbar() {
         <span className="text-ink font-semibold text-lg tracking-tight">Careculator</span>
       </Link>
 
-      <div className="hidden sm:flex items-center gap-5 md:gap-7">
-        <div
-          className="flex rounded-lg border border-slate-300 p-0.5 dark:border-slate-600 bg-slate-100/80 dark:bg-slate-900/80"
-          role="group"
-          aria-label="Theme"
-        >
-          <button
-            type="button"
-            onClick={() => theme !== 'dark' && toggleTheme()}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-              theme === 'dark'
-                ? 'bg-slate-900 text-white shadow-sm dark:bg-sky-500/90 dark:text-white'
-                : 'text-ink-muted hover:text-ink dark:text-slate-400 dark:hover:text-slate-200'
-            }`}
-            aria-pressed={theme === 'dark'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-            Dark
-          </button>
-          <button
-            type="button"
-            onClick={() => theme !== 'light' && toggleTheme()}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-              theme === 'light'
-                ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-100 dark:text-slate-900'
-                : 'text-ink-muted hover:text-ink dark:text-slate-400 dark:hover:text-slate-200'
-            }`}
-            aria-pressed={theme === 'light'}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            Light
-          </button>
-        </div>
+      {/* Hanging bulb — right side, anchored at top of navbar, hangs into page body */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        className="absolute right-8 top-0 hidden sm:flex flex-col items-center group z-20"
+        style={{ paddingBottom: 0 }}
+      >
+        {/* Wire from very top of navbar */}
+        <div className="w-px h-20 bg-slate-400/50 dark:bg-slate-500/50 group-hover:bg-cf-teal/60 transition-colors" />
+        {/* Bulb hangs at bottom of wire, below navbar */}
+        <img
+          src={theme === 'dark' ? bulbLight : bulbDark}
+          alt=""
+          className="w-14 h-14 drop-shadow-xl group-hover:scale-110 transition-transform duration-200"
+        />
+      </button>
+
+      {/* Mobile: inline bulb + hamburger */}
+      <div className="flex items-center gap-2 sm:hidden">
         <button
           type="button"
-          onClick={() => navigate('/results')}
-          className="border border-slate-300 text-ink text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors dark:border-slate-600 dark:hover:bg-slate-800/80"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="flex items-center justify-center w-9 h-9"
         >
-          Try Demo
+          <img src={theme === 'dark' ? bulbLight : bulbDark} alt="" className="w-7 h-7" />
         </button>
-      </div>
-
-      <div className="flex items-center gap-2 sm:hidden">
-        <div className="flex rounded-lg border border-slate-300 p-0.5 dark:border-slate-600 bg-slate-100/90 dark:bg-slate-900/80" role="group" aria-label="Theme">
-          <button
-            type="button"
-            onClick={() => theme !== 'dark' && toggleTheme()}
-            className={`rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide ${
-              theme === 'dark' ? 'bg-slate-900 text-white dark:bg-sky-500/90' : 'text-ink-muted'
-            }`}
-            aria-pressed={theme === 'dark'}
-          >
-            Dark
-          </button>
-          <button
-            type="button"
-            onClick={() => theme !== 'light' && toggleTheme()}
-            className={`rounded-md px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide ${
-              theme === 'light' ? 'bg-white text-slate-900 dark:bg-slate-100' : 'text-ink-muted'
-            }`}
-            aria-pressed={theme === 'light'}
-          >
-            Light
-          </button>
-        </div>
         <button
           type="button"
           className="text-ink-muted hover:text-ink p-1"
@@ -111,9 +71,9 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className="absolute top-full left-0 right-0 z-50 glass-card rounded-none border-t border-slate-200 dark:border-slate-700 flex flex-col p-4 gap-3 sm:hidden">
-          <button type="button" onClick={() => { navigate('/results'); setMenuOpen(false); }} className="btn-primary text-sm py-2 w-full">
-            Try Demo
-          </button>
+          <Link to="/results" onClick={() => setMenuOpen(false)} className="btn-primary text-sm py-2 w-full text-center">
+            Browse All
+          </Link>
         </div>
       )}
     </nav>

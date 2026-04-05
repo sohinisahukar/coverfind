@@ -181,5 +181,24 @@ export function getProvidersForWizard(state) {
     }
   }
 
-  return [...map.values()];
+  // Deduplicate by name: merge entries with the same display name
+  const byName = new Map();
+  for (const entry of map.values()) {
+    const key = entry.name.toLowerCase().trim();
+    if (!byName.has(key)) {
+      byName.set(key, { ...entry, policies: [...entry.policies] });
+    } else {
+      const existing = byName.get(key);
+      // Merge policies — keep unique plan types only
+      const seenTypes = new Set(existing.policies.map(p => p.type));
+      for (const pol of entry.policies) {
+        if (!seenTypes.has(pol.type)) {
+          seenTypes.add(pol.type);
+          existing.policies.push(pol);
+        }
+      }
+    }
+  }
+
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

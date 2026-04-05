@@ -1,16 +1,3 @@
-/**
- * HomePage.tsx — Multi-step search wizard.
- *
- * Flow:  basics (query + ZIP) -> insurance prompt -> provider -> policy -> finalize
- *
- * All data is fetched from the backend APIs:
- *   - Insurance providers: GET /api/insurance/providers
- *   - Quick-search tags:   GET /api/clinics/recommendations
- *   - ZIP geocoding:       external zippopotam.us API (see api.ts)
- *
- * On submit, builds a query-string URL and navigates to /results.
- */
-
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlanSelect from '../components/PlanSelect';
@@ -43,7 +30,7 @@ const STEP_TITLES: Record<Exclude<Step, 'basics'>, string> = {
   'insurance-prompt': 'Insurance (optional)',
   provider: 'Your insurer',
   policy: 'Your plan',
-  finalize: 'Preferences before search',
+  finalize: 'Set your preference',
 };
 
 export default function HomePage() {
@@ -54,6 +41,7 @@ export default function HomePage() {
   const [useInsuranceDetails, setUseInsuranceDetails] = useState<boolean | null>(null);
   const [providerId, setProviderId] = useState<string | null>(null);
   const [policyId, setPolicyId] = useState<string | null>(null);
+  // 0 = prioritize lower cost (left), 100 = prioritize stronger outcomes (right)
   const [sliderValue, setSliderValue] = useState(50);
   const [providers, setProviders] = useState<InsuranceProvider[]>([]);
   const [providersLoading, setProvidersLoading] = useState(true);
@@ -62,9 +50,7 @@ export default function HomePage() {
 
   useEffect(() => {
     fetchRecommendations()
-      .then(data => {
-        if (data.quickTags?.length) setQuickTags(data.quickTags);
-      })
+      .then(data => { if (data.quickTags?.length) setQuickTags(data.quickTags); })
       .catch(() => {});
   }, []);
 
@@ -76,21 +62,17 @@ export default function HomePage() {
       .then(data => {
         if (!cancelled) {
           setProviders(data);
-          setProvidersError(data.length === 0 ? 'No insurers are available right now. Please try again later.' : null);
+          setProvidersError(data.length === 0 ? 'No insurers available right now.' : null);
         }
       })
       .catch(() => {
         if (!cancelled) {
           setProviders([]);
-          setProvidersError('We couldn’t load insurers. Check your connection and try again.');
+          setProvidersError('We couldn\u2019t load insurers. Check your connection and try again.');
         }
       })
-      .finally(() => {
-        if (!cancelled) setProvidersLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+      .finally(() => { if (!cancelled) setProvidersLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const selectedProvider = useMemo(
@@ -103,6 +85,9 @@ export default function HomePage() {
     return selectedProvider.policies.find(p => p.id === policyId);
   }, [selectedProvider, policyId]);
 
+  // priorityWeight sent to backend:
+  //   0   = pure recovery-first  (slider RIGHT, "Stronger Outcomes")
+  //   100 = pure cost-first      (slider LEFT,  "Lower Cost")
   const priorityForApi = 100 - sliderValue;
 
   const buildResultsUrl = async (q: string, zip: string) => {
@@ -149,15 +134,9 @@ export default function HomePage() {
 
   const chooseInsurancePath = (yes: boolean) => {
     setUseInsuranceDetails(yes);
-    if (yes) {
-      setProviderId(null);
-      setPolicyId(null);
-      setStep('provider');
-    } else {
-      setProviderId(null);
-      setPolicyId(null);
-      setStep('finalize');
-    }
+    setProviderId(null);
+    setPolicyId(null);
+    setStep(yes ? 'provider' : 'finalize');
   };
 
   const selectProvider = (p: InsuranceProvider) => {
@@ -195,11 +174,11 @@ export default function HomePage() {
   return (
     <div className="flex w-full min-h-full flex-1 flex-col items-center px-4 pt-10 pb-16 sm:pt-12 sm:pb-20">
       <header className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink mb-3 leading-tight tracking-tight">
-          Find care that's right for you.
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink mb-3 leading-tight tracking-tight uppercase">
+          Find care that heals—not just bills.
         </h1>
         <p className="text-ink-muted text-base sm:text-lg leading-relaxed px-1">
-          Get recommendations based on real patient experiences — not just distance or cost.
+          We don&apos;t just tell you where to go for care, we tell you where to go based on what you can afford and what minimizes your financial risk.
         </p>
       </header>
 
@@ -219,7 +198,7 @@ export default function HomePage() {
                 <p className="truncate text-sm font-medium text-ink">
                   {query}
                   <span className="font-normal text-muted"> · </span>
-                  <span className="text-muted">{location.trim() || 'Add ZIP in previous step'}</span>
+                  <span className="text-muted">{location.trim() || 'No ZIP entered'}</span>
                 </p>
               </div>
               <button
@@ -243,6 +222,7 @@ export default function HomePage() {
           )}
 
           <div className="space-y-5 text-left">
+            {/* ── Step 1: basics ── */}
             {step === 'basics' && (
               <>
                 <div className="border-b border-slate-200/80 pb-4 dark:border-slate-700/70">
@@ -277,15 +257,8 @@ export default function HomePage() {
                           </svg>
                         </button>
                       ) : (
-                        <svg
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-                          aria-hidden
-                        >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden>
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                       )}
@@ -305,14 +278,8 @@ export default function HomePage() {
                         onChange={e => setLocation(e.target.value)}
                         className="home-search-input pr-10"
                       />
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-                      >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
@@ -332,54 +299,43 @@ export default function HomePage() {
               </>
             )}
 
+            {/* ── Step 2: insurance prompt ── */}
             {step === 'insurance-prompt' && (
               <>
-                <button
-                  type="button"
-                  onClick={goBasics}
-                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
-                >
+                <button type="button" onClick={goBasics}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                   Back
                 </button>
                 <p className="text-subtle text-sm sm:text-base leading-relaxed">
-                  Add your insurance so we can factor <span className="text-ink font-medium">estimated</span> coverage into
-                  ranking. You can skip this for a cash-pay style search.
+                  Do you have health insurance? Adding it lets us factor estimated coverage into rankings.
+                  You can skip this if you&apos;re paying out-of-pocket.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => chooseInsurancePath(true)}
-                    className="rounded-xl border-2 border-cf-teal/35 bg-teal-50/60 dark:bg-teal-950/35 text-ink font-semibold py-3.5 px-4 text-sm hover:border-cf-teal/60 transition-colors"
-                  >
-                    Yes, add insurance
+                  <button type="button" onClick={() => chooseInsurancePath(true)}
+                    className="rounded-xl border-2 border-cf-teal/35 bg-teal-50/60 dark:bg-teal-950/35 text-ink font-semibold py-3.5 px-4 text-sm hover:border-cf-teal/60 transition-colors">
+                    Yes, I have insurance
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => chooseInsurancePath(false)}
-                    className="rounded-xl border border-slate-300 dark:border-slate-600 text-ink font-medium py-3.5 px-4 text-sm hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors"
-                  >
-                    No, skip for now
+                  <button type="button" onClick={() => chooseInsurancePath(false)}
+                    className="rounded-xl border border-slate-300 dark:border-slate-600 text-ink font-medium py-3.5 px-4 text-sm hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-colors">
+                    No, I&apos;ll pay out-of-pocket
                   </button>
                 </div>
               </>
             )}
 
+            {/* ── Step 3: provider ── */}
             {step === 'provider' && (
               <>
-                <button
-                  type="button"
-                  onClick={() => setStep('insurance-prompt')}
-                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
-                >
+                <button type="button" onClick={() => setStep('insurance-prompt')}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
                   Back
                 </button>
-                {/* Insurers: GET /api/insurance/providers — do not surface file paths or data filenames in UI */}
                 <p className="text-sm text-subtle">Choose the company that issues your health plan.</p>
                 {providersLoading && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-pulse">
@@ -397,11 +353,8 @@ export default function HomePage() {
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[min(50vh,20rem)] overflow-y-auto pr-1 -mr-1">
                     {[...providers].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                       <li key={p.id}>
-                        <button
-                          type="button"
-                          onClick={() => selectProvider(p)}
-                          className="w-full text-left px-4 py-3.5 rounded-xl border border-slate-200/90 dark:border-slate-600/80 bg-white/40 dark:bg-slate-950/20 hover:border-cf-teal/45 hover:bg-teal-50/30 dark:hover:bg-teal-950/20 transition-all text-ink text-sm font-medium"
-                        >
+                        <button type="button" onClick={() => selectProvider(p)}
+                          className="w-full text-left px-4 py-3.5 rounded-xl border border-slate-200/90 dark:border-slate-600/80 bg-white/40 dark:bg-slate-950/20 hover:border-cf-teal/45 hover:bg-teal-50/30 dark:hover:bg-teal-950/20 transition-all text-ink text-sm font-medium">
                           {p.name}
                         </button>
                       </li>
@@ -411,16 +364,11 @@ export default function HomePage() {
               </>
             )}
 
+            {/* ── Step 4: policy ── */}
             {step === 'policy' && selectedProvider && (
               <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPolicyId(null);
-                    setStep('provider');
-                  }}
-                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
-                >
+                <button type="button" onClick={() => { setPolicyId(null); setStep('provider'); }}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
@@ -438,15 +386,12 @@ export default function HomePage() {
               </>
             )}
 
+            {/* ── Step 5: finalize ── */}
             {step === 'finalize' && (
               <>
-                <button
-                  type="button"
-                  onClick={() =>
-                    useInsuranceDetails ? setStep('policy') : setStep('insurance-prompt')
-                  }
-                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1"
-                >
+                <button type="button"
+                  onClick={() => useInsuranceDetails ? setStep('policy') : setStep('insurance-prompt')}
+                  className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-ink -mt-1 mb-1">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                   </svg>
@@ -462,34 +407,18 @@ export default function HomePage() {
                   </div>
                 )}
 
-                {!useInsuranceDetails && (
-                  <p className="text-sm text-subtle leading-relaxed">
-                    Searching without a saved plan — adjust how we balance estimated cost vs. recovery signals.
-                  </p>
-                )}
-
                 <div className="rounded-xl bg-slate-50/80 dark:bg-slate-900/40 border border-slate-200/70 dark:border-slate-700/60 p-4 space-y-4">
                   {useInsuranceDetails ? (
                     <>
                       <p className="text-xs sm:text-sm text-subtle leading-relaxed">
-                        Roughly how much of this visit do you expect your plan to cover? Illustrative only — confirm with your
-                        insurer.
+                        Roughly how much of this visit do you expect your plan to cover? Illustrative only — confirm with your insurer.
                       </p>
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 text-right shrink-0 leading-tight">
-                          You pay more
-                        </span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={sliderValue}
+                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 text-right shrink-0 leading-tight">You pay more</span>
+                        <input type="range" min={0} max={100} value={sliderValue}
                           onChange={e => setSliderValue(Number(e.target.value))}
-                          className="flex-1 accent-cf cursor-pointer min-w-0 h-2"
-                        />
-                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 shrink-0 leading-tight">
-                          Plan pays more
-                        </span>
+                          className="flex-1 accent-cf cursor-pointer min-w-0 h-2" />
+                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 shrink-0 leading-tight">Plan pays more</span>
                       </div>
                       <p className="text-center text-cf-teal dark:text-teal-300 font-bold text-base tabular-nums">
                         {sliderValue}% covered <span className="text-xs font-normal text-muted">(estimate)</span>
@@ -498,24 +427,22 @@ export default function HomePage() {
                   ) : (
                     <>
                       <p className="text-xs sm:text-sm text-subtle leading-relaxed">
-                        Slide toward lower estimated out-of-pocket or toward stronger recovery signals.
+                        Slide toward lower estimated out-of-pocket cost or toward stronger recovery signals.
                       </p>
                       <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 text-right shrink-0 leading-tight">
-                          Lower cost
-                        </span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={sliderValue}
+                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 text-right shrink-0 leading-tight">Lower cost</span>
+                        <input type="range" min={0} max={100} value={sliderValue}
                           onChange={e => setSliderValue(Number(e.target.value))}
-                          className="flex-1 accent-cf cursor-pointer min-w-0 h-2"
-                        />
-                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 shrink-0 leading-tight">
-                          Stronger outcomes
-                        </span>
+                          className="flex-1 accent-cf cursor-pointer min-w-0 h-2" />
+                        <span className="text-ink-muted text-[11px] sm:text-xs w-16 sm:w-24 shrink-0 leading-tight">Stronger outcomes</span>
                       </div>
+                      <p className="text-center text-xs text-muted">
+                        {sliderValue < 30
+                          ? 'Prioritizing lowest estimated out-of-pocket cost'
+                          : sliderValue > 70
+                          ? 'Prioritizing fastest recovery and best clinical outcomes'
+                          : 'Balanced: cost and recovery equally weighted'}
+                      </p>
                     </>
                   )}
                 </div>
@@ -533,12 +460,8 @@ export default function HomePage() {
         <p className="text-center text-xs font-medium text-muted uppercase tracking-wide mb-3">Quick searches</p>
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
           {quickTags.map(tag => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => quickNavigate(tag)}
-              className="border border-slate-200/90 bg-white/70 text-slate-700 text-xs sm:text-sm px-4 py-2 rounded-full hover:border-cf-teal/50 hover:text-cf-teal-bright transition-colors dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:text-teal-300"
-            >
+            <button key={tag} type="button" onClick={() => quickNavigate(tag)}
+              className="border border-slate-200/90 bg-white/70 text-slate-700 text-xs sm:text-sm px-4 py-2 rounded-full hover:border-cf-teal/50 hover:text-cf-teal-bright transition-colors dark:border-slate-600 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:text-teal-300">
               {tag}
             </button>
           ))}

@@ -121,6 +121,25 @@ export function searchClinics(query = {}) {
     return sB - sA;
   });
 
+  // ── 5b. Dynamic badge reassignment ───────────────────────────────────────
+  // Clear pre-computed badges; assign based on actual ranked results.
+  // topRecommendation → rank-1 clinic (highest weighted score)
+  // bestValue         → clinic with highest costScore (cheapest per visit)
+  let bestValueIdx = 0;
+  for (let i = 1; i < clinics.length; i++) {
+    if ((clinics[i].costScore || 0) > (clinics[bestValueIdx].costScore || 0)) {
+      bestValueIdx = i;
+    }
+  }
+  clinics = clinics.map((c, i) => ({
+    ...c,
+    badges: {
+      ...(c.badges || {}),
+      topRecommendation: i === 0,
+      bestValue: i === bestValueIdx,
+    },
+  }));
+
   // ── 6. Paginate ───────────────────────────────────────────────────────────
   const total      = clinics.length;
   const safeLimit  = Math.min(Math.max(1, Number(limit)  || DEFAULT_LIMIT), MAX_LIMIT);
