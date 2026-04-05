@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MedMotifBackground from './components/MedMotifBackground';
@@ -26,6 +27,23 @@ export default function App() {
         </main>
         <Footer />
       </div>
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: '#0d1e35',
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '14px',
+          },
+          error: {
+            iconTheme: { primary: '#f87171', secondary: '#0d1e35' },
+          },
+          success: {
+            iconTheme: { primary: '#2dd4bf', secondary: '#0d1e35' },
+          },
+        }}
+      />
     </div>
   );
 }

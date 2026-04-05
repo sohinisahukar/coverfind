@@ -1,4 +1,4 @@
-import { getClinics } from '../models/clinic.model.js';
+import { getClinicById as _getClinicById, searchClinicsByKeyword } from '../models/clinic.model.js';
 import { haversine } from '../utils/haversine.js';
 
 // Default center coordinates (zip 60616, near IIT/Bridgeport, Chicago)
@@ -9,12 +9,12 @@ const DEFAULT_LNG = -87.6233;
  * Quick-search preset tags shown in the recommendations UI.
  */
 export const QUICK_SEARCH_TAGS = [
-  'Physical Therapy',
-  'Dental Cleaning',
-  'Skin Rash',
+  'Primary Care',
   'Urgent Care',
-  'Back Pain',
-  'Knee Pain',
+  'Dental',
+  'Pediatrics',
+  'Behavioral Health',
+  "Women's Health",
 ];
 
 /**
@@ -40,27 +40,10 @@ export function searchClinics(query = {}) {
   } = query;
 
   const weight = priorityWeight !== undefined ? Number(priorityWeight) : 50;
-  const centerLat = DEFAULT_LAT;
-  const centerLng = DEFAULT_LNG;
+  const centerLat = query.lat ? Number(query.lat) : DEFAULT_LAT;
+  const centerLng = query.lng ? Number(query.lng) : DEFAULT_LNG;
 
-  let clinics = getClinics();
-
-  // Keyword/specialty filter — split multi-word queries, match any term
-  if (q && q.trim()) {
-    const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    clinics = clinics.filter((clinic) => {
-      return terms.some((term) => {
-        const inKeywords = clinic.keywords.some((kw) =>
-          kw.toLowerCase().includes(term)
-        );
-        const inSpecialties = clinic.specialties.some((sp) =>
-          sp.toLowerCase().includes(term)
-        );
-        const inName = clinic.name.toLowerCase().includes(term);
-        return inKeywords || inSpecialties || inName;
-      });
-    });
-  }
+  let clinics = searchClinicsByKeyword(q);
 
   // Attach distance to each clinic
   clinics = clinics.map((clinic) => ({
@@ -105,8 +88,7 @@ export function searchClinics(query = {}) {
  * @returns {Object} Clinic object
  */
 export function getClinicById(id) {
-  const clinics = getClinics();
-  const clinic = clinics.find((c) => c.id === id);
+  const clinic = _getClinicById(id);
   if (!clinic) {
     const err = new Error(`Clinic not found: ${id}`);
     err.status = 404;
@@ -125,11 +107,8 @@ export function getClinicById(id) {
  * @param {string}  [params.zipCode]
  * @returns {Array<Object>} Array of clinic objects in the order of requested IDs
  */
-export function compareClinics({ ids = [], condition, specialty, zipCode } = {}) {
-  const clinics = getClinics();
-  return ids
-    .map((id) => clinics.find((c) => c.id === id))
-    .filter(Boolean);
+export function compareClinics({ ids = [] } = {}) {
+  return ids.map((id) => _getClinicById(id)).filter(Boolean);
 }
 
 /**

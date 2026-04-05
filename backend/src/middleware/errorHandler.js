@@ -5,6 +5,8 @@
  * @param {Function} fn - Async route handler (req, res, next) => Promise
  * @returns {Function} Express middleware function
  */
+import { logger } from '../utils/logger.js';
+
 export function asyncHandler(fn) {
   return (req, res, next) => {
     Promise.resolve()
@@ -13,15 +15,16 @@ export function asyncHandler(fn) {
   };
 }
 
-/**
- * Global Express error-handling middleware. Must be registered after all routes.
- *
- * @param {Error}    err
- * @param {Object}   req
- * @param {Object}   res
- * @param {Function} next
- */
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   const status = err.status || err.statusCode || 500;
-  res.status(status).json({ error: err.message || 'Internal Server Error' });
+  const message = err.message || 'Internal Server Error';
+
+  if (status >= 500) {
+    logger.error(`${req.method} ${req.url} → ${status} ${message}`);
+    if (err.stack) logger.error(err.stack);
+  } else {
+    logger.warn(`${req.method} ${req.url} → ${status} ${message}`);
+  }
+
+  res.status(status).json({ error: message });
 }

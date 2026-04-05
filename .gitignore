@@ -38,3 +38,8 @@ Desktop.ini
 
 # Optional: uncomment if you add TypeScript
 # *.tsbuildinfo
+
+# Database (too large for git — copy manually from /Documents/careculator.db)
+backend/data/careculator.db
+backend/data/careculator.db-shm
+backend/data/careculator.db-wal

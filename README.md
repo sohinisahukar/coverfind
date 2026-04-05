@@ -42,12 +42,12 @@ Use **npm 7+** (comes with Node 16+). If you previously hit install loops, remov
 
 Do not add `"careculator": "file:.."` to `backend` or `frontend` — that links the root package into itself and can make `postinstall` / install recurse forever on Windows.
 
-| Service       | URL                              |
-| ------------- | -------------------------------- |
-| Frontend      | http://localhost:5173            |
-| Backend API   | http://localhost:3001            |
-| Swagger UI    | http://localhost:3001/api/docs   |
-| OpenAPI JSON  | http://localhost:3001/api/docs.json |
+| Service      | URL                                 |
+| ------------ | ----------------------------------- |
+| Frontend     | http://localhost:5173               |
+| Backend API  | http://localhost:3001               |
+| Swagger UI   | http://localhost:3001/api/docs      |
+| OpenAPI JSON | http://localhost:3001/api/docs.json |
 
 The Vite dev server proxies all `/api` requests to the backend automatically — no CORS issues during development.
 
@@ -71,17 +71,17 @@ The raw OpenAPI spec (importable into Postman or Insomnia) is at **http://localh
 
 ### Endpoints
 
-| Method | Path                         | Description                                  |
-| ------ | ---------------------------- | -------------------------------------------- |
-| GET    | `/api/health`                | Health check                                 |
-| GET    | `/api/clinics`               | Search clinics (alias for `/api/clinics/search`) |
-| GET    | `/api/clinics/search`        | Search by condition, location, and preferences |
-| GET    | `/api/clinics/recommendations` | Infer specialty + quick-search tag presets |
-| GET    | `/api/clinics/compare`       | Compare clinics side-by-side                 |
-| POST   | `/api/clinics/compare`       | Compare clinics side-by-side (body payload)  |
-| GET    | `/api/clinics/:id`           | Get a single clinic by ID                    |
-| GET    | `/api/insurance`             | List supported insurance plans               |
-| POST   | `/api/cards`                 | Upload and parse an insurance card           |
+| Method | Path                           | Description                                      |
+| ------ | ------------------------------ | ------------------------------------------------ |
+| GET    | `/api/health`                  | Health check                                     |
+| GET    | `/api/clinics`                 | Search clinics (alias for `/api/clinics/search`) |
+| GET    | `/api/clinics/search`          | Search by condition, location, and preferences   |
+| GET    | `/api/clinics/recommendations` | Infer specialty + quick-search tag presets       |
+| GET    | `/api/clinics/compare`         | Compare clinics side-by-side                     |
+| POST   | `/api/clinics/compare`         | Compare clinics side-by-side (body payload)      |
+| GET    | `/api/clinics/:id`             | Get a single clinic by ID                        |
+| GET    | `/api/insurance`               | List supported insurance plans                   |
+| POST   | `/api/cards`                   | Upload and parse an insurance card               |
 
 To add docs for a new endpoint, add a `@swagger` JSDoc comment to its route file — the spec updates automatically on the next server start.
 

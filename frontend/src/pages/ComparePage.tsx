@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
 import { fetchCompare, type Clinic } from '../lib/api';
 
@@ -17,7 +18,11 @@ export default function ComparePage() {
     setLoading(true);
     fetchCompare(ids)
       .then(setClinics)
-      .catch(err => setError((err as Error).message))
+      .catch(err => {
+        const msg = (err as Error).message;
+        setError(msg);
+        toast.error(msg, { duration: 6000 });
+      })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get('ids')]);
@@ -119,9 +124,35 @@ export default function ComparePage() {
 
           {(left || right) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
-              {left && <button type="button" className="btn-primary py-3 sm:py-4 text-sm sm:text-base">Choose {left.name}</button>}
+              {left && (
+                <button
+                  type="button"
+                  className="btn-primary py-3 sm:py-4 text-sm sm:text-base"
+                  onClick={() => {
+                    if (left.website) {
+                      const url = /^https?:\/\//i.test(left.website) ? left.website : `https://${left.website}`;
+                      window.open(url, '_blank');
+                    } else {
+                      navigate('/results');
+                    }
+                  }}
+                >
+                  Choose {left.name}
+                </button>
+              )}
               {right && (
-                <button type="button" className="btn-ghost py-3 sm:py-4 text-sm sm:text-base flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="btn-ghost py-3 sm:py-4 text-sm sm:text-base flex items-center justify-center gap-2"
+                  onClick={() => {
+                    if (right.website) {
+                      const url = /^https?:\/\//i.test(right.website) ? right.website : `https://${right.website}`;
+                      window.open(url, '_blank');
+                    } else {
+                      navigate('/results');
+                    }
+                  }}
+                >
                   Choose {right.name}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -169,7 +200,10 @@ function ProviderColumn({ clinic, isRecommended }: { clinic: Clinic; isRecommend
           ) : (
             <div className="w-7 h-7 rounded-full bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-700 text-xs shrink-0 dark:bg-amber-500/15 dark:border-amber-500/30 dark:text-amber-300">⚠</div>
           )}
-          <span className="text-ink font-semibold text-sm sm:text-base truncate">{clinic.name}</span>
+          <div className="min-w-0">
+            <span className="text-ink font-semibold text-sm sm:text-base truncate block">{clinic.name}</span>
+            {clinic.phone && <span className="text-muted text-xs">{clinic.phone}</span>}
+          </div>
           {clinic.badges.includes('best-value') && <StatusBadge status="best-value" />}
         </div>
         <span className="text-muted text-xs sm:text-sm shrink-0 ml-2">

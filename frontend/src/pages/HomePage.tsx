@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlanSelect from '../components/PlanSelect';
-import { fetchInsuranceProviders, type InsuranceProvider } from '../lib/api';
+import { fetchInsuranceProviders, fetchRecommendations, zipToCoords, type InsuranceProvider } from '../lib/api';
 
-const QUICK_TAGS = ['Physical Therapy', 'Dental Cleaning', 'Skin Rash', 'Urgent Care'];
+const FALLBACK_QUICK_TAGS = ['Physical Therapy', 'Dental Cleaning', 'Skin Rash', 'Urgent Care'];
 
 type Step = 'basics' | 'insurance-prompt' | 'provider' | 'policy' | 'finalize';
 
@@ -45,6 +45,15 @@ export default function HomePage() {
   const [providers, setProviders] = useState<InsuranceProvider[]>([]);
   const [providersLoading, setProvidersLoading] = useState(true);
   const [providersError, setProvidersError] = useState<string | null>(null);
+  const [quickTags, setQuickTags] = useState<string[]>(FALLBACK_QUICK_TAGS);
+
+  useEffect(() => {
+    fetchRecommendations()
+      .then(data => {
+        if (data.quickTags?.length) setQuickTags(data.quickTags);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,7 +92,7 @@ export default function HomePage() {
 
   const priorityForApi = 100 - sliderValue;
 
-  const buildResultsUrl = (q: string, zip: string) => {
+  const buildResultsUrl = async (q: string, zip: string) => {
     const z = zip.trim() || '60616';
     const params = new URLSearchParams();
     params.set('q', q);
@@ -98,12 +107,19 @@ export default function HomePage() {
       params.set('flow', 'cash');
       params.set('costFocus', String(sliderValue));
     }
+    if (/^\d{5}$/.test(z.trim())) {
+      const coords = await zipToCoords(z.trim());
+      if (coords) {
+        params.set('lat', String(coords.lat));
+        params.set('lng', String(coords.lng));
+      }
+    }
     return `/results?${params.toString()}`;
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!query.trim()) return;
-    navigate(buildResultsUrl(query.trim(), location.trim()));
+    navigate(await buildResultsUrl(query.trim(), location.trim()));
   };
 
   const goBasics = () => {
@@ -142,7 +158,7 @@ export default function HomePage() {
     setStep('finalize');
   };
 
-  const quickNavigate = (tag: string) => {
+  const quickNavigate = async (tag: string) => {
     setQuery(tag);
     const z = location.trim() || '60616';
     const params = new URLSearchParams();
@@ -151,6 +167,13 @@ export default function HomePage() {
     params.set('priority', '50');
     params.set('flow', 'cash');
     params.set('costFocus', '50');
+    if (/^\d{5}$/.test(z.trim())) {
+      const coords = await zipToCoords(z.trim());
+      if (coords) {
+        params.set('lat', String(coords.lat));
+        params.set('lng', String(coords.lng));
+      }
+    }
     navigate(`/results?${params.toString()}`);
   };
 
@@ -496,7 +519,7 @@ export default function HomePage() {
       <section className="mt-10 sm:mt-12 w-full max-w-xl sm:max-w-2xl">
         <p className="text-center text-xs font-medium text-muted uppercase tracking-wide mb-3">Quick searches</p>
         <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-          {QUICK_TAGS.map(tag => (
+          {quickTags.map(tag => (
             <button
               key={tag}
               type="button"

@@ -29,13 +29,40 @@ export interface Clinic {
   treatmentBurden: 'low' | 'moderate' | 'high';
   totalCostEstimate: number;
   perVisitCost: number;
-  perVisitCostTier: 'low' | 'moderate' | 'high';
+  perVisitCostTier: 'low' | 'medium' | 'high';
   patientSummary: string;
   highlightTags: string[];
   recoveryScore: number;
   costScore: number;
+  /** Normalized from API object or string[] — use `.includes('best-value')` etc. */
   badges: string[];
   distanceMiles?: number;
+  website?: string;
+  phone?: string;
+}
+
+async function apiFetch<T>(url: string): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    throw new Error(
+      `Cannot reach backend at ${BASE}. Is the server running on port 3001? (${(err as Error).message})`
+    );
+  }
+
+  if (!res.ok) {
+    let message = `Server error ${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json() as { error?: string };
+      if (body.error) message = `${res.status}: ${body.error}`;
+    } catch {
+      // non-JSON body — keep the status message
+    }
+    throw new Error(message);
+  }
+
+  return res.json() as Promise<T>;
 }
 
 /** `clinics.json` uses badge objects; UI expects string tags for `.includes()`. */
@@ -76,15 +103,17 @@ export async function fetchClinics(params: {
   priorityWeight?: number;
   maxDistanceMi?: number;
   treatmentBurden?: string;
+  lat?: number;
+  lng?: number;
 }): Promise<Clinic[]> {
   const qs = new URLSearchParams();
   if (params.q) qs.set('q', params.q);
   if (params.priorityWeight !== undefined) qs.set('priorityWeight', String(params.priorityWeight));
   if (params.maxDistanceMi !== undefined) qs.set('maxDistanceMi', String(params.maxDistanceMi));
   if (params.treatmentBurden) qs.set('treatmentBurden', params.treatmentBurden);
-  const res = await fetch(`${BASE}/api/clinics/search?${qs}`);
-  if (!res.ok) throw new Error('Failed to fetch clinics');
-  const data = (await res.json()) as Record<string, unknown>[];
+  if (params.lat !== undefined) qs.set('lat', String(params.lat));
+  if (params.lng !== undefined) qs.set('lng', String(params.lng));
+  const data = await apiFetch<Record<string, unknown>[]>(`${BASE}/api/clinics/search?${qs}`);
   return Array.isArray(data) ? data.map((row) => normalizeClinic(row)) : [];
 }
 
@@ -97,10 +126,8 @@ export type InsuranceProvider = {
 };
 
 export async function fetchInsuranceProviders(): Promise<InsuranceProvider[]> {
-  const res = await fetch(`${BASE}/api/insurance/providers`);
-  if (!res.ok) throw new Error('Failed to load insurance providers');
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  const data = await apiFetch<unknown>(`${BASE}/api/insurance/providers`);
+  return Array.isArray(data) ? (data as InsuranceProvider[]) : [];
 }
 
 export function findProviderById(
@@ -111,10 +138,42 @@ export function findProviderById(
 }
 
 export async function fetchCompare(ids: string[]): Promise<Clinic[]> {
-  const q = encodeURIComponent(ids.join(','));
-  const res = await fetch(`${BASE}/api/clinics/compare?ids=${q}`);
-  if (!res.ok) throw new Error('Failed to fetch comparison');
-  const data = await res.json();
-  const rows = Array.isArray(data) ? data : [];
-  return rows.map((row: Record<string, unknown>) => normalizeClinic(row));
+  const rows = await apiFetch<Record<string, unknown>[]>(
+    `${BASE}/api/clinics/compare?ids=${encodeURIComponent(ids.join(','))}`,
+  );
+  return Array.isArray(rows) ? rows.map((row) => normalizeClinic(row)) : [];
+}
+
+export async function fetchRecommendations(): Promise<{ specialty: string; condition: string; quickTags: string[] }> {
+  return apiFetch(`${BASE}/api/clinics/recommendations`);
+}
+
+export interface InsuranceTier {
+  tier: 'bronze' | 'silver' | 'gold' | 'premium';
+  label: string;
+  coveragePct: number;
+  color: string;
+  planCount: number;
+  avgPremium: number;
+  avgDeductible: number | null;
+  avgOopMax: number | null;
+}
+
+export async function fetchInsuranceTiers(state?: string): Promise<{ state: string | null; tiers: InsuranceTier[] }> {
+  const q = state ? `?state=${encodeURIComponent(state)}` : '';
+  return apiFetch(`${BASE}/api/insurance${q}`);
+}
+
+export async function zipToCoords(zip: string): Promise<{ lat: number; lng: number } | null> {
+  if (!/^\d{5}$/.test(zip.trim())) return null;
+  try {
+    const res = await fetch(`https://api.zippopotam.us/us/${zip.trim()}`);
+    if (!res.ok) return null;
+    const data = await res.json() as { places: Array<{ latitude: string; longitude: string }> };
+    const place = data.places?.[0];
+    if (!place) return null;
+    return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
+  } catch {
+    return null;
+  }
 }

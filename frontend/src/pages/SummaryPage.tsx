@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
 import { fetchCompare, type Clinic } from '../lib/api';
 
@@ -17,7 +18,11 @@ export default function SummaryPage() {
     setLoading(true);
     fetchCompare(ids)
       .then(setClinics)
-      .catch(err => setError((err as Error).message))
+      .catch(err => {
+        const msg = (err as Error).message;
+        setError(msg);
+        toast.error(msg, { duration: 6000 });
+      })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get('ids')]);
@@ -97,8 +102,8 @@ function ProviderCard({ clinic, isTop, onSelect }: { clinic: Clinic; isTop: bool
       <div className="mb-4">
         <div className="flex items-center gap-2 flex-wrap mb-1">
           {isTop
-            ? <span className="text-amber-600" aria-hidden>🏆</span>
-            : <span className="text-amber-600 text-sm" aria-hidden>⚠</span>}
+            ? <span className="text-amber-600 dark:text-amber-400" aria-hidden>🏆</span>
+            : <span className="text-amber-600 text-sm dark:text-amber-400" aria-hidden>⚠</span>}
           <span className="text-ink font-semibold text-sm sm:text-base">{clinic.name}</span>
           {clinic.badges.includes('best-value') && <StatusBadge status="best-value" />}
           {clinic.badges.includes('high-visits') && <StatusBadge status="high-visits" />}
@@ -113,7 +118,7 @@ function ProviderCard({ clinic, isTop, onSelect }: { clinic: Clinic; isTop: bool
         <Row label="Recovery Speed"><StatusBadge status={clinic.recoverySpeed} /></Row>
         <Row label="Outcome Quality"><StatusBadge status={clinic.outcomeQuality} /></Row>
         <Row label="Total Cost" value={`~$${clinic.totalCostEstimate.toLocaleString()}`} />
-        <Row label="Per Visit Cost"><StatusBadge status={clinic.perVisitCostTier} /></Row>
+        <Row label="Per Visit Cost"><StatusBadge status={clinic.perVisitCostTier === 'medium' ? 'moderate' : clinic.perVisitCostTier} /></Row>
       </div>
 
       {clinic.patientSummary && (
