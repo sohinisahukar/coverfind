@@ -146,7 +146,7 @@ export default function ResultsPage() {
 
       <div className="flex flex-1 flex-col min-h-0 min-w-0">
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-          <div className="px-4 md:px-6 py-4 md:py-6 space-y-4 min-w-0 pb-6 md:pb-8">
+          <div className={`px-4 md:px-6 py-4 md:py-6 space-y-4 min-w-0 ${comparing.length > 0 ? 'pb-24' : 'pb-6 md:pb-8'}`}>
               <div className="hidden md:block space-y-2">
                 <h2 className="text-xl font-semibold text-ink">
                   Results for: {q || 'All care'} near {zip}
@@ -242,7 +242,7 @@ export default function ResultsPage() {
         </div>
 
         {comparing.length > 0 && (
-          <div className="shrink-0 z-10 bg-compare-strip px-4 md:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:pt-4 md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-3">
+          <div className="fixed bottom-0 left-0 right-0 md:left-52 lg:left-56 z-20 bg-compare-strip px-4 md:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:pt-4 md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
