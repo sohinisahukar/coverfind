@@ -13,6 +13,7 @@
 
 import { queryClinics, getClinicById as _getClinicById, getTopSpecialties } from '../models/clinic.model.js';
 import { haversine } from '../utils/haversine.js';
+import { expandQuery } from '../utils/synonyms.js';
 
 // Default center: ZIP 60616 (IIT / Bridgeport, Chicago, IL)
 const DEFAULT_LAT = 41.8827;
@@ -83,7 +84,17 @@ export function searchClinics(query = {}) {
   const centerLng = query.lng != null ? Number(query.lng) : DEFAULT_LNG;
 
   // ── 1. SQL filter ─────────────────────────────────────────────────────────
-  let clinics = queryClinics({ q, state });
+  // Expand layperson terms (e.g. "food poison" → "nausea vomiting") so they
+  // resolve to keywords that actually exist in the clinics table.
+  const expandedQ = q ? expandQuery(q) : q;
+  let clinics = queryClinics({ q: expandedQ, state });
+
+  // Fallback: if synonym expansion still yields no results, return all clinics
+  // within the distance radius (unfiltered by condition) so the user always
+  // sees nearby options rather than an empty page.
+  if (clinics.length === 0 && expandedQ) {
+    clinics = queryClinics({ state });
+  }
 
   // ── 2. Attach distance ────────────────────────────────────────────────────
   clinics = clinics.map(c => ({
