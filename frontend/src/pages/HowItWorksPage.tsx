@@ -3,6 +3,7 @@
  */
 
 import { motion } from 'motion/react';
+import GlowCard from '../components/GlowCard';
 
 const EASE = [0.4, 0, 0.2, 1] as [number, number, number, number];
 
@@ -59,13 +60,20 @@ const steps = [
   },
 ];
 
+const cardVariants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.45, ease: EASE } },
+};
+
 export default function HowItWorksPage() {
   return (
     <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-12">
       <motion.div
         className="text-center mb-10 sm:mb-14"
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-60px' }}
+        transition={{ duration: 0.45, ease: EASE }}
       >
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mb-3 tracking-tight">How it works</h1>
         <p className="text-ink-muted text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
@@ -73,40 +81,47 @@ export default function HowItWorksPage() {
         </p>
       </motion.div>
 
-      <motion.div
-        className="space-y-6 sm:space-y-8"
-        initial="hidden"
-        animate="show"
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } } }}
-      >
-        {steps.map(s => (
+      <div className="space-y-6 sm:space-y-8">
+        {steps.map((s, i) => (
           <motion.div
             key={s.num}
-            className="glass-card p-5 sm:p-6 flex gap-4 sm:gap-6"
-            variants={{ hidden: { opacity: 0, x: -16 }, show: { opacity: 1, x: 0, transition: { duration: 0.4, ease: EASE } } }}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-60px' }}
+            variants={cardVariants}
+            transition={{ delay: i * 0.06 }}
           >
-            <div className="shrink-0 flex flex-col items-center gap-2 pt-0.5">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-cf-teal flex items-center justify-center">
-                {s.icon}
+            <GlowCard className="rounded-2xl">
+              <div className="glass-card p-5 sm:p-6 flex gap-4 sm:gap-6">
+                <div className="shrink-0 flex flex-col items-center gap-2 pt-0.5">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-cf-teal flex items-center justify-center">
+                    {s.icon}
+                  </div>
+                  <span className="text-[10px] font-bold text-muted tracking-widest">{s.num}</span>
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-semibold text-ink mb-1.5">{s.title}</h2>
+                  <p className="text-subtle text-sm sm:text-base leading-relaxed">{s.body}</p>
+                </div>
               </div>
-              <span className="text-[10px] font-bold text-muted tracking-widest">{s.num}</span>
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-semibold text-ink mb-1.5">{s.title}</h2>
-              <p className="text-subtle text-sm sm:text-base leading-relaxed">{s.body}</p>
-            </div>
+            </GlowCard>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
 
       <motion.div
-        className="glass-card mt-8 sm:mt-10 p-5 sm:p-6 bg-top-rec text-center"
         initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0, transition: { delay: 0.7, duration: 0.4, ease: EASE } }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.4, ease: EASE }}
       >
-        <p className="text-sm text-subtle leading-relaxed max-w-lg mx-auto">
-          <span className="font-semibold text-ink">Reminder:</span> Careculator is a demo tool only. All cost and outcome figures are illustrative estimates. Always confirm details with your healthcare provider and insurer before making decisions.
-        </p>
+        <GlowCard className="rounded-2xl mt-8 sm:mt-10">
+          <div className="glass-card p-5 sm:p-6 bg-top-rec text-center">
+            <p className="text-sm text-subtle leading-relaxed max-w-lg mx-auto">
+              <span className="font-semibold text-ink">Reminder:</span> Careculator is a demo tool only. All cost and outcome figures are illustrative estimates. Always confirm details with your healthcare provider and insurer before making decisions.
+            </p>
+          </div>
+        </GlowCard>
       </motion.div>
     </div>
   );

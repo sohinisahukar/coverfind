@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { InsurancePolicy } from '../lib/api';
 
 type Props = {
@@ -10,7 +11,8 @@ type Props = {
 };
 
 /**
- * Themed plan picker — native &lt;select&gt; menus can’t be styled; this matches glass / teal UI.
+ * Themed plan picker rendered via a portal so it escapes any parent
+ * backdrop-blur / stacking-context that would make it appear transparent.
  */
 export default function PlanSelect({
   label,
@@ -20,28 +22,59 @@ export default function PlanSelect({
   placeholder = 'Choose a plan…',
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const btnId = useId();
   const listId = `${btnId}-list`;
 
   const selected = policies.find(p => p.id === value);
 
+  const updatePosition = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setDropdownStyle({
+        position: 'fixed',
+        top: r.bottom + 6,
+        left: r.left,
+        width: r.width,
+        zIndex: 9999,
+      });
+    }
+  };
+
+  const handleToggle = () => {
+    if (!open) updatePosition();
+    setOpen(o => !o);
+  };
+
+  // Close on outside click (checks both the trigger and the portal list)
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (!rootRef.current?.contains(t) && !listRef.current?.contains(t)) {
+        setOpen(false);
+      }
     };
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
+  // Close on Escape
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  // Reposition if window resizes while open
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
   }, [open]);
 
   return (
@@ -51,13 +84,14 @@ export default function PlanSelect({
       </span>
       <div className="relative">
         <button
+          ref={btnRef}
           id={btnId}
           type="button"
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listId}
           aria-labelledby={`${btnId}-label`}
-          onClick={() => setOpen(o => !o)}
+          onClick={handleToggle}
           className={`plan-select-trigger flex w-full min-h-[2.875rem] items-center justify-between gap-2 rounded-xl border-2 bg-white px-4 py-2.5 pr-10 text-left text-sm transition-[border-color,box-shadow] focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-teal/25 dark:bg-[#0b1014] dark:focus-visible:ring-teal-500/25 ${
             open
               ? 'border-cf-teal shadow-sm shadow-teal-900/10 dark:border-teal-400/70 dark:shadow-teal-900/20'
@@ -81,12 +115,14 @@ export default function PlanSelect({
           </svg>
         </button>
 
-        {open && (
+        {open && createPortal(
           <ul
+            ref={listRef}
             id={listId}
             role="listbox"
             aria-labelledby={`${btnId}-label`}
-            className="absolute z-50 mt-1.5 max-h-56 w-full overflow-auto rounded-xl border border-slate-200/95 bg-white py-1 shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 dark:border-slate-600/90 dark:bg-[#0b1014] dark:shadow-black/80 dark:ring-white/10"
+            style={dropdownStyle}
+            className="max-h-56 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-2xl ring-1 ring-slate-900/5 dark:border-slate-600 dark:bg-[#0b1014] dark:ring-white/10"
           >
             {policies.map(pol => {
               const isSel = pol.id === value;
@@ -98,7 +134,7 @@ export default function PlanSelect({
                     aria-selected={isSel}
                     className={`w-full border-b border-slate-100 px-4 py-2.5 text-left transition-colors last:border-b-0 dark:border-slate-700/80 ${
                       isSel
-                        ? 'bg-teal-50/90 dark:bg-teal-950/45'
+                        ? 'bg-teal-50 dark:bg-teal-950/60'
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/70'
                     }`}
                     onClick={() => {
@@ -112,7 +148,8 @@ export default function PlanSelect({
                 </li>
               );
             })}
-          </ul>
+          </ul>,
+          document.body
         )}
       </div>
     </div>

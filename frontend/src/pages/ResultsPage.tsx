@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import GlowCard from '../components/GlowCard';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
@@ -390,6 +391,7 @@ export default function ResultsPage() {
 
             {/* Top Recommendation */}
             {!loading && !error && filteredTopClinic && (
+              <GlowCard className="rounded-2xl">
               <motion.div
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }}
@@ -550,6 +552,7 @@ export default function ResultsPage() {
                   )}
                 </div>
               </motion.div>
+              </GlowCard>
             )}
 
             {/* Other great options header + sort */}
@@ -826,7 +829,7 @@ function TopCostCell({
   const fullCost = clinic.totalCostEstimate;
   const adjCost = withInsurance(fullCost, null, coveragePct);
   const hasDiscount = adjCost !== fullCost;
-  const savings = hasDiscount ? fullCost - adjCost : null;
+  const savings = hasDiscount ? Math.round(fullCost - adjCost) : null;
 
   return (
     <div className="flex flex-col items-center">
@@ -883,14 +886,15 @@ function ClinicRow({
   const adjCost = withInsurance(fullCost, null, coveragePct);
   const adjPerVisit = withInsurance(clinic.perVisitCost, null, coveragePct);
   const hasDiscount = adjCost !== fullCost;
-  const savings = hasDiscount ? fullCost - adjCost : null;
+  const savings = hasDiscount ? Math.round(fullCost - adjCost) : null;
 
   const costDiff =
     filteredTopClinic && clinic.id !== filteredTopClinic.id
-      ? clinic.totalCostEstimate - filteredTopClinic.totalCostEstimate
+      ? Math.round(clinic.totalCostEstimate - filteredTopClinic.totalCostEstimate)
       : 0;
 
   return (
+    <GlowCard className="rounded-2xl">
     <div className="glass-card p-4 flex items-start gap-3 min-w-0">
       {/* Circle icon */}
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center shrink-0 mt-0.5">
@@ -981,6 +985,7 @@ function ClinicRow({
         </div>
       </div>
     </div>
+    </GlowCard>
   );
 }
 

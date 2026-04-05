@@ -9,6 +9,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import PlanSelect from '../components/PlanSelect';
+import GlowCard from '../components/GlowCard';
 import { SpecialtyIcon } from '../components/MedicalIcons';
 import {
   fetchInsuranceProviders,
@@ -160,7 +161,7 @@ export default function HomePage() {
   const priorityForApi = 100 - sliderValue;
 
   const buildResultsUrl = async (q: string, zip: string) => {
-    const z = zip.trim() || '60616';
+    const z = zip.trim();
     const params = new URLSearchParams();
     params.set('q', q);
     params.set('zip', z);
@@ -185,7 +186,7 @@ export default function HomePage() {
   };
 
   const handleSearch = async () => {
-    if (!query.trim()) return;
+    if (!query.trim() || !location.trim()) return;
     navigate(await buildResultsUrl(query.trim(), location.trim()));
   };
 
@@ -221,8 +222,9 @@ export default function HomePage() {
   };
 
   const quickNavigate = async (tag: string) => {
+    if (!location.trim()) { setQuery(tag); return; }
     setQuery(tag);
-    const z = location.trim() || '60616';
+    const z = location.trim();
     const params = new URLSearchParams();
     params.set('q', tag);
     params.set('zip', z);
@@ -288,8 +290,9 @@ export default function HomePage() {
       </motion.header>
 
       {/* ── Wizard card ─────────────────────────────────────────────────── */}
+      <GlowCard className="relative z-10 w-full max-w-xl sm:max-w-2xl rounded-2xl">
       <motion.div
-        className="relative z-10 glass-card w-full max-w-xl sm:max-w-2xl shadow-[0_0_40px_rgba(20,184,166,0.12)] dark:shadow-[0_0_60px_rgba(20,184,166,0.15)] ring-1 ring-cf-teal/10 rounded-2xl"
+        className="glass-card w-full shadow-[0_0_40px_rgba(20,184,166,0.12)] dark:shadow-[0_0_60px_rgba(20,184,166,0.15)] ring-1 ring-cf-teal/10 rounded-2xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.25, ease: EASE_STANDARD } }}
       >
@@ -413,10 +416,10 @@ export default function HomePage() {
                   <motion.button
                     type="button"
                     onClick={goInsurancePrompt}
-                    disabled={!query.trim()}
+                    disabled={!query.trim() || !location.trim()}
                     className="btn-primary w-full py-3 text-sm sm:text-base disabled:opacity-45 flex items-center justify-center gap-2"
-                    whileHover={{ scale: query.trim() ? 1.015 : 1 }}
-                    whileTap={{ scale: query.trim() ? 0.985 : 1 }}
+                    whileHover={{ scale: query.trim() && location.trim() ? 1.015 : 1 }}
+                    whileTap={{ scale: query.trim() && location.trim() ? 0.985 : 1 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   >
                     Continue
@@ -625,6 +628,7 @@ export default function HomePage() {
           </AnimatePresence>
         </div>
       </motion.div>
+      </GlowCard>
 
       {/* Trust note */}
       <motion.p
@@ -642,7 +646,7 @@ export default function HomePage() {
         animate={{ opacity: 1, y: 0, transition: { delay: 0.45, duration: 0.45, ease: EASE_STANDARD } }}
       >
         <p className="text-center text-[10px] font-bold text-muted uppercase tracking-widest mb-3">Quick Searches</p>
-        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
           {quickTags.map((tag, i) => {
             const subtitle = CHIP_SUBTITLES[tag];
             return (
@@ -650,18 +654,18 @@ export default function HomePage() {
                 key={tag}
                 type="button"
                 onClick={() => quickNavigate(tag)}
-                className="group inline-flex items-center gap-2.5 border border-slate-200/60 bg-white/60 dark:border-slate-700/60 dark:bg-slate-900/70 text-left px-3.5 py-2.5 rounded-2xl hover:border-cf-teal/50 hover:bg-teal-50/30 dark:hover:bg-teal-950/30 transition-colors"
+                className="group flex items-center gap-3 border border-slate-200/60 bg-white/60 dark:border-slate-700/60 dark:bg-slate-900/70 text-left px-4 py-3.5 rounded-2xl hover:border-cf-teal/50 hover:bg-teal-50/30 dark:hover:bg-teal-950/30 transition-colors w-full"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1, transition: { delay: 0.5 + i * 0.07, duration: 0.3 } }}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-teal-100/80 dark:bg-teal-900/50 text-cf-teal dark:text-teal-400">
-                  <SpecialtyIcon specialty={tag} className="w-4 h-4" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100/80 dark:bg-teal-900/50 text-cf-teal dark:text-teal-400">
+                  <SpecialtyIcon specialty={tag} className="w-5 h-5" />
                 </div>
                 <div className="text-left min-w-0">
-                  <p className="text-xs font-semibold text-ink group-hover:text-cf-teal dark:group-hover:text-teal-300 transition-colors leading-tight">{tag}</p>
-                  {subtitle && <p className="text-[10px] text-muted leading-tight mt-0.5 whitespace-nowrap">{subtitle}</p>}
+                  <p className="text-sm font-semibold text-ink group-hover:text-cf-teal dark:group-hover:text-teal-300 transition-colors leading-tight">{tag}</p>
+                  {subtitle && <p className="text-[11px] text-muted leading-tight mt-0.5">{subtitle}</p>}
                 </div>
               </motion.button>
             );
@@ -676,6 +680,7 @@ export default function HomePage() {
         animate="show"
         variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1, delayChildren: 0.65 } } }}
       >
+        <GlowCard className="rounded-2xl">
         <div className="glass-card rounded-2xl divide-y divide-slate-200/60 dark:divide-slate-700/50 overflow-hidden sm:divide-y-0 sm:grid sm:grid-cols-3 sm:divide-x">
           {FEATURES.map(f => (
             <motion.div
@@ -693,6 +698,7 @@ export default function HomePage() {
             </motion.div>
           ))}
         </div>
+        </GlowCard>
       </motion.section>
     </div>
   );

@@ -113,3 +113,25 @@
     @apply border-slate-300 text-slate-600 hover:border-slate-400 dark:border-slate-600 dark:text-slate-300 dark:hover:border-slate-500;
   }
 }
+
+/* ── Permanent teal ambient glow ──────────────────────────────────────────── */
+/*
+ * Uses a blurred pseudo-element instead of box-shadow so the glow
+ * spreads as a soft cloud — no rectangular card outline visible.
+ * isolation:isolate keeps the z:-1 pseudo-element inside the wrapper.
+ */
+.glow-card-wrapper {
+  position: relative;
+  border-radius: inherit;
+  isolation: isolate;
+}
+
+.glow-card-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: rgba(20, 184, 166, 0.22);
+  filter: blur(22px);
+  z-index: -1;
+}

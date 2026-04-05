@@ -3,6 +3,7 @@
  */
 
 import { motion } from 'motion/react';
+import GlowCard from '../components/GlowCard';
 
 const EASE = [0.4, 0, 0.2, 1] as [number, number, number, number];
 
@@ -45,7 +46,9 @@ export default function AboutEstimatesPage() {
       <motion.div
         className="text-center mb-10 sm:mb-14"
         initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE } }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-60px' }}
+        transition={{ duration: 0.45, ease: EASE }}
       >
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink mb-3 tracking-tight">About estimates</h1>
         <p className="text-ink-muted text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
@@ -53,33 +56,36 @@ export default function AboutEstimatesPage() {
         </p>
       </motion.div>
 
-      <motion.div
-        className="space-y-5 sm:space-y-6"
-        initial="hidden"
-        animate="show"
-        variants={{ hidden: {}, show: { transition: { staggerChildren: 0.12, delayChildren: 0.2 } } }}
-      >
-        {sections.map(s => (
+      <div className="space-y-5 sm:space-y-6">
+        {sections.map((s, i) => (
           <motion.div
             key={s.title}
-            className="glass-card p-5 sm:p-6"
-            variants={{ hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: EASE } } }}
+            initial={{ opacity: 0, y: 14 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.4, ease: EASE, delay: i * 0.07 }}
           >
-            <h2 className="text-base sm:text-lg font-semibold text-ink mb-3">{s.title}</h2>
-            <div className="space-y-2.5">
-              {s.body.map((para, i) => (
-                <p key={i} className="text-subtle text-sm sm:text-[15px] leading-relaxed">{para}</p>
-              ))}
-            </div>
+            <GlowCard className="rounded-2xl">
+              <div className="glass-card p-5 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-ink mb-3">{s.title}</h2>
+                <div className="space-y-2.5">
+                  {s.body.map((para, j) => (
+                    <p key={j} className="text-subtle text-sm sm:text-[15px] leading-relaxed">{para}</p>
+                  ))}
+                </div>
+              </div>
+            </GlowCard>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
 
       {/* Disclaimer */}
       <motion.div
         className="mt-8 sm:mt-10 rounded-2xl border border-amber-200/80 dark:border-amber-700/40 bg-amber-50/70 dark:bg-amber-950/25 px-5 py-4"
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1, transition: { delay: 0.8, duration: 0.4 } }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true, margin: '-40px' }}
+        transition={{ duration: 0.4 }}
       >
         <div className="flex gap-3">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">

@@ -16,7 +16,7 @@ export default function Navbar() {
   const isHome = pathname === '/';
 
   return (
-    <nav className="surface-nav flex items-center justify-between px-4 sm:px-8 py-4 relative overflow-visible">
+    <nav className="surface-nav flex items-center justify-between px-4 sm:px-8 py-4 relative z-10 overflow-visible">
       <Link to="/" className="flex items-center gap-2.5 shrink-0 rounded-lg outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-cf-teal dark:ring-offset-slate-950" aria-label="Careculator home">
         <LogoMark size={34} />
         <span className="text-ink font-semibold text-lg tracking-tight">Careculator</span>
@@ -26,12 +26,6 @@ export default function Navbar() {
       <div className={`hidden sm:flex items-center gap-5 ${isHome ? 'mr-24' : ''}`}>
         <NavLink to="/how-it-works" className={({ isActive }) => `text-sm transition-colors whitespace-nowrap ${isActive ? 'text-cf-teal font-medium' : 'text-ink-muted hover:text-ink'}`}>How it works</NavLink>
         <NavLink to="/about-estimates" className={({ isActive }) => `text-sm transition-colors whitespace-nowrap ${isActive ? 'text-cf-teal font-medium' : 'text-ink-muted hover:text-ink'}`}>About estimates</NavLink>
-        <button
-          type="button"
-          className="rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-1.5 text-sm font-medium text-ink hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap"
-        >
-          Sign in
-        </button>
       </div>
 
       {/* Hanging bulb — only on homepage, desktop */}

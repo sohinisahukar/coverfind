@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { motion } from 'motion/react';
 import StatusBadge from '../components/StatusBadge';
+import GlowCard from '../components/GlowCard';
 import { SpecialtyIcon } from '../components/MedicalIcons';
 import { fetchCompare, type Clinic } from '../lib/api';
 
@@ -59,30 +60,30 @@ function MetricRow({
   winIdx: number | null;
 }) {
   return (
-    <div className={`grid gap-0 border-b border-slate-200/80 dark:border-slate-700/70 last:border-0 ${
-      clinics.length >= 2 ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-1'
-    }`}>
+    <div
+      className="grid border-b border-slate-200/80 dark:border-slate-700/70 last:border-0"
+      style={{ gridTemplateColumns: `minmax(90px,110px) repeat(${clinics.length}, 1fr)` }}
+    >
+      {/* Label cell */}
+      <div className="flex items-center px-3 py-3 border-r border-slate-200/80 dark:border-slate-700/70 bg-slate-50/60 dark:bg-slate-900/40">
+        <span className="text-[10px] font-semibold text-muted uppercase tracking-wide leading-tight">{label}</span>
+      </div>
+      {/* Value cells */}
       {clinics.map((c, i) => (
         <div
           key={c.id}
-          className={`flex items-center px-4 py-3 ${
-            i === 1 ? 'justify-end text-right' : 'justify-start'
-          } ${winIdx === i ? 'bg-teal-50/50 dark:bg-teal-950/20' : ''}`}
+          className={`flex items-center justify-center gap-1 px-3 py-3 border-r last:border-r-0 border-slate-200/80 dark:border-slate-700/70 ${
+            winIdx === i ? 'bg-teal-50/50 dark:bg-teal-950/20' : ''
+          }`}
         >
           {winIdx === i && (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className={`text-cf-teal shrink-0 ${i === 0 ? 'mr-1.5' : 'ml-1.5 order-last'}`}>
-              <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="text-cf-teal shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           )}
           {render(c)}
         </div>
       ))}
-      {/* Center label */}
-      {clinics.length >= 2 && (
-        <div className="flex items-center justify-center px-2 py-3 border-l border-r border-slate-200/80 dark:border-slate-700/70">
-          <span className="text-[10px] font-semibold text-muted uppercase tracking-wide text-center leading-tight">{label}</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -141,12 +142,12 @@ export default function ComparePage() {
 
   const maxCost = Math.max(...clinics.map(c => c.totalCostEstimate), 1);
 
-  /* Determine overall winner by composite score or cost */
+  /* Determine overall winner by composite score — works for 2 or 3 clinics */
   const bestIdx = clinics.length >= 2
-    ? (clinics[0].compositeScore ?? 0) >= (clinics[1].compositeScore ?? 0) ? 0 : 1
+    ? clinics.reduce((bi, c, i) => (c.compositeScore ?? 0) > (clinics[bi].compositeScore ?? 0) ? i : bi, 0)
     : 0;
   const best = clinics[bestIdx];
-  const other = clinics[bestIdx === 0 ? 1 : 0];
+  const other = clinics.find((_, i) => i !== bestIdx) ?? null;
 
   const costWinIdx = winnerIdx(clinics, 'totalCostEstimate', true);
   const visitsWinIdx = winnerIdx(clinics, 'avgVisitsNeeded', true);
@@ -244,15 +245,18 @@ export default function ComparePage() {
 
           {/* ── Provider header cards ── */}
           <motion.div
-            className={`grid gap-4 ${clinics.length >= 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}
+            className={`grid gap-4 ${
+              clinics.length >= 3 ? 'grid-cols-1 sm:grid-cols-3' :
+              clinics.length === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
+            }`}
             variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } }}
           >
             {clinics.map((clinic, i) => {
               const isRecommended = i === bestIdx;
               return (
+                <GlowCard key={clinic.id} className="rounded-2xl h-full">
                 <div
-                  key={clinic.id}
-                  className={`glass-card p-4 sm:p-5 flex flex-col gap-3 ${isRecommended ? 'ring-1 ring-cf-teal/30' : ''}`}
+                  className={`glass-card p-4 sm:p-5 flex flex-col gap-3 h-full ${isRecommended ? 'ring-1 ring-cf-teal/30' : ''}`}
                 >
                   <div className="flex items-start gap-2.5">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
@@ -285,25 +289,23 @@ export default function ComparePage() {
 
                   <p className="text-subtle text-xs sm:text-sm leading-relaxed">{clinic.patientSummary}</p>
 
-                  {/* Action buttons */}
-                  <div className="flex gap-2 flex-wrap mt-auto pt-1">
-                    {clinic.phone && (
+                  {/* Action buttons — always render all 3 rows so cards stay equal height */}
+                  <div className="flex flex-col gap-2 mt-auto pt-1">
+                    <div className="flex gap-2">
                       <a
-                        href={`tel:${clinic.phone}`}
-                        className="flex-1 min-w-[80px] btn-ghost text-xs py-2 flex items-center justify-center gap-1.5"
+                        href={clinic.phone ? `tel:${clinic.phone}` : undefined}
+                        className={`flex-1 btn-ghost text-xs py-2 flex items-center justify-center gap-1.5 ${!clinic.phone ? 'opacity-30 pointer-events-none' : ''}`}
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                         </svg>
                         Call
                       </a>
-                    )}
-                    {clinic.phone && (
                       <a
                         href={`https://maps.google.com/?q=${encodeURIComponent(clinic.name)}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 min-w-[80px] btn-ghost text-xs py-2 flex items-center justify-center gap-1.5"
+                        className="flex-1 btn-ghost text-xs py-2 flex items-center justify-center gap-1.5"
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -311,24 +313,25 @@ export default function ComparePage() {
                         </svg>
                         Directions
                       </a>
-                    )}
-                    {clinic.website && (
-                      <a
-                        href={/^https?:\/\//i.test(clinic.website) ? clinic.website : `https://${clinic.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`flex-1 min-w-[100px] text-xs py-2 flex items-center justify-center gap-1.5 rounded-xl font-semibold transition-opacity ${
-                          isRecommended ? 'btn-primary' : 'btn-ghost'
-                        }`}
-                      >
-                        Visit Website
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    )}
+                    </div>
+                    <a
+                      href={clinic.website ? (/^https?:\/\//i.test(clinic.website) ? clinic.website : `https://${clinic.website}`) : undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`w-full text-xs py-2 flex items-center justify-center gap-1.5 rounded-xl font-semibold transition-opacity ${
+                        clinic.website
+                          ? (isRecommended ? 'btn-primary' : 'btn-ghost')
+                          : 'btn-ghost opacity-30 pointer-events-none'
+                      }`}
+                    >
+                      Visit Website
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
                   </div>
                 </div>
+                </GlowCard>
               );
             })}
           </motion.div>
@@ -339,14 +342,19 @@ export default function ComparePage() {
               className="glass-card overflow-hidden"
               variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.1, ease: 'easeOut' } } }}
             >
-              {/* Column headers */}
-              <div className="grid grid-cols-[1fr_auto_1fr] border-b border-slate-200/80 dark:border-slate-700/70 bg-slate-50/80 dark:bg-slate-900/40">
+              {/* Column headers — label-first, same grid as MetricRow */}
+              <div
+                className="grid border-b border-slate-200/80 dark:border-slate-700/70 bg-slate-50/80 dark:bg-slate-900/40"
+                style={{ gridTemplateColumns: `minmax(90px,110px) repeat(${clinics.length}, 1fr)` }}
+              >
+                <div className="px-3 py-2.5 border-r border-slate-200/80 dark:border-slate-700/70 bg-slate-50/60 dark:bg-slate-900/40" />
                 {clinics.map((c, i) => (
-                  <div key={c.id} className={`px-4 py-2.5 ${i === 1 ? 'text-right' : ''}`}>
-                    <p className={`text-xs font-semibold truncate ${bestIdx === i ? 'text-cf-teal' : 'text-ink-muted'}`}>{c.name.split(' ').slice(0, 2).join(' ')}</p>
+                  <div key={c.id} className="px-3 py-2.5 text-center border-r last:border-r-0 border-slate-200/80 dark:border-slate-700/70">
+                    <p className={`text-xs font-semibold truncate ${bestIdx === i ? 'text-cf-teal' : 'text-ink-muted'}`}>
+                      {c.name.split(' ').slice(0, 2).join(' ')}
+                    </p>
                   </div>
                 ))}
-                <div className="px-2 py-2.5 border-l border-r border-slate-200/80 dark:border-slate-700/70" />
               </div>
 
               <MetricRow
