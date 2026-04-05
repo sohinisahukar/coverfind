@@ -1,72 +1,107 @@
+/**
+ * clinics.controller.js — HTTP handlers for clinic endpoints.
+ *
+ * Each function maps to a route in clinics.routes.js.
+ * Business logic is delegated to clinicCatalog.service.js;
+ * this layer only handles HTTP concerns (parsing params, sending JSON).
+ */
+
 import {
   searchClinics,
   getClinicById,
   compareClinics,
   getRecommendationForQuery,
-  QUICK_SEARCH_TAGS,
+  getQuickSearchTags,
 } from '../services/clinicCatalog.service.js';
 import { logger } from '../utils/logger.js';
 
 /**
  * GET /api/clinics
  * GET /api/clinics/search
+ *
+ * Query params: q, state, lat, lng, maxDistanceMi, treatmentBurden,
+ *               priorityWeight, limit, offset
+ *
+ * Response: { data: Clinic[], total, pagination, center }
  */
 export async function search(req, res) {
-  const { q, priorityWeight, maxDistanceMi, treatmentBurden } = req.query;
-  logger.info(`search  q="${q || ''}" priority=${priorityWeight ?? 50} maxDist=${maxDistanceMi ?? '—'} burden=${treatmentBurden || '—'}`);
+  const { q, state, lat, lng, priorityWeight, maxDistanceMi, treatmentBurden, limit, offset } = req.query;
 
-  const clinics = searchClinics(req.query);
-  logger.success(`search  → ${clinics.length} clinic(s) returned`);
+  logger.info(
+    `clinics.search  q="${q || ''}" state=${state || '—'} ` +
+    `lat=${lat ?? '—'} lng=${lng ?? '—'} ` +
+    `priority=${priorityWeight ?? 50} maxDist=${maxDistanceMi ?? '—'} ` +
+    `burden=${treatmentBurden || '—'} limit=${limit ?? 50} offset=${offset ?? 0}`
+  );
+
+  const result = searchClinics(req.query);
+
+  // Return flat array — frontend (design-ui) expects Clinic[], not a pagination envelope
+  const clinics = Array.isArray(result) ? result : (result.data ?? []);
+
+  logger.success(`clinics.search  → ${clinics.length} clinic(s) returned`);
+
   res.json(clinics);
 }
 
 /**
  * GET /api/clinics/recommendations
+ *
+ * Query params: query | q
+ * Response: { specialty, condition, quickTags }
  */
 export async function recommendations(req, res) {
   const query = req.query.query || req.query.q || '';
-  logger.info(`recommendations  query="${query}"`);
+  logger.info(`clinics.recommendations  query="${query}"`);
 
   const inferred = getRecommendationForQuery(query);
-  logger.success(`recommendations  → specialty="${inferred.specialty}"`);
-  res.json({ ...inferred, quickTags: QUICK_SEARCH_TAGS });
+  logger.success(`clinics.recommendations  → specialty="${inferred.specialty}"`);
+
+  res.json({ ...inferred, quickTags: getQuickSearchTags() });
 }
 
 /**
  * GET  /api/clinics/compare?ids=id1,id2
  * POST /api/clinics/compare  { ids: ["id1","id2"] }
+ *
+ * Response: Clinic[]  (ordered by the requested ids)
  */
 export async function compare(req, res) {
   let ids = [];
-  let condition, specialty, zipCode;
 
   if (req.method === 'POST') {
-    ({ ids = [], condition, specialty, zipCode } = req.body || {});
+    ids = (req.body?.ids ?? []).map(String).filter(Boolean);
   } else {
-    const rawIds = req.query.ids || '';
-    ids = rawIds.split(',').map((s) => s.trim()).filter(Boolean);
-    ({ condition, specialty, zipCode } = req.query);
+    ids = (req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
   }
 
-  logger.info(`compare  ids=[${ids.join(', ') || 'none'}]`);
+  logger.info(`clinics.compare  ids=[${ids.join(', ') || 'none'}]`);
 
   if (ids.length === 0) {
-    logger.warn('compare  → no IDs provided, returning empty array');
+    logger.warn('clinics.compare  → no IDs provided');
     return res.json([]);
   }
 
-  const result = compareClinics({ ids, condition, specialty, zipCode });
+  const result = compareClinics(ids);
   const missing = ids.length - result.length;
-  logger.success(`compare  → ${result.length} clinic(s) returned${missing ? ` (${missing} not found)` : ''}`);
+  logger.success(
+    `clinics.compare  → ${result.length} clinic(s)` +
+    (missing ? ` (${missing} not found)` : '')
+  );
+
   res.json(result);
 }
 
 /**
  * GET /api/clinics/:id
+ *
+ * Response: Clinic (full shape)
  */
 export async function getById(req, res) {
-  logger.info(`getById  id="${req.params.id}"`);
+  logger.info(`clinics.getById  id="${req.params.id}"`);
+
   const clinic = getClinicById(req.params.id);
-  logger.success(`getById  → "${clinic.name}"`);
+
+  logger.success(`clinics.getById  → "${clinic.name}" (${clinic.city}, ${clinic.state})`);
   res.json(clinic);
 }

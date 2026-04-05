@@ -74,7 +74,7 @@ coverfind/
 │       ├── routes/           # Route definitions + Swagger annotations
 │       ├── middleware/        # Error handler + async wrapper
 │       ├── utils/            # Haversine distance, logger
-│       ├── data/             # SQLite database (tracked via Git LFS on deploy branch)
+│       ├── data/             # SQLite database (tracked via Git LFS)
 │       └── scripts/          # Python DB build scripts
 ├── frontend/
 │   ├── vercel.json           # Vercel deployment config (SPA rewrites)

@@ -1,3 +1,10 @@
+/**
+ * index.js — Express application entry point.
+ *
+ * Mounts API route groups, Swagger UI, and the global error handler.
+ * Start with: `npm run dev` (uses node --watch for hot-reload).
+ */
+
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -7,11 +14,13 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './src/swagger.js';
 import clinicsRoutes from './src/routes/clinics.routes.js';
 import insuranceRoutes from './src/routes/insurance.routes.js';
-import cardsRoutes from './src/routes/cards.routes.js';
+import geoRoutes from './src/routes/geo.routes.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
 import { logger } from './src/utils/logger.js';
 
 const app = express();
+
+// ── Global middleware ───────────────────────────────────────────────────────
 app.use(cors());
 app.use(express.json());
 
@@ -27,9 +36,11 @@ app.use(
       return chalk.green(s);
     })();
     const ms = chalk.gray(tokens['response-time'](req, res) + ' ms');
-    return `${chalk.gray(new Date().toTimeString().slice(0, 8))} ${method} ${url} → ${status} ${ms}`;
+    return `${chalk.gray(new Date().toTimeString().slice(0, 8))} ${method} ${url} -> ${status} ${ms}`;
   })
 );
+
+// ── Health check ────────────────────────────────────────────────────────────
 
 /**
  * @swagger
@@ -49,25 +60,27 @@ app.use(
  *                   type: string
  *                   example: ok
  */
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.use('/api/clinics', clinicsRoutes);
-app.use('/api/insurance', insuranceRoutes);
-app.use('/api/cards', cardsRoutes);
+// ── API route groups ────────────────────────────────────────────────────────
+app.use('/api/clinics', clinicsRoutes);      // Clinic search, compare, recommendations
+app.use('/api/insurance', insuranceRoutes);  // Plans, tiers, providers, rates
+app.use('/api/geo', geoRoutes);              // ZIP-code geocoding
 
-// Swagger UI — available at http://localhost:3001/api/docs
+// ── Swagger / OpenAPI ───────────────────────────────────────────────────────
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Raw OpenAPI JSON
-app.get('/api/docs.json', (req, res) => {
+app.get('/api/docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
 
+// ── Global error handler (must be registered last) ──────────────────────────
 app.use(errorHandler);
 
+// ── Start server ────────────────────────────────────────────────────────────
 const PORT = process.env.PORT ?? 3001;
 app.listen(PORT, () => {
   console.log('');

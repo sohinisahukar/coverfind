@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 180" role="img" aria-labelledby="title desc">
+  <title id="title">Light bulb icon</title>
+  <desc id="desc">A simple hanging light bulb icon inspired by the provided reference image.</desc>
+
+  <defs>
+    <radialGradient id="bulbGlow" cx="50%" cy="56%" r="58%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="70%" stop-color="#f7f7f7" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ececec" stop-opacity="1"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Cord -->
+  <rect x="61" y="0" width="6" height="54" rx="3" fill="#111111"/>
+
+  <!-- Cap -->
+  <rect x="42" y="48" width="44" height="30" rx="10" fill="#000000"/>
+
+  <!-- Neck -->
+  <rect x="46" y="70" width="36" height="18" rx="8" fill="#f4f4f4"/>
+
+  <!-- Bulb -->
+  <path fill="url(#bulbGlow)" d="M64 80
+    C88 80 104 96 104 120
+    C104 138 94 152 80 160
+    C74 163 71 168 71 174
+    H57
+    C57 168 54 163 48 160
+    C34 152 24 138 24 120
+    C24 96 40 80 64 80 Z"/>
+</svg>
