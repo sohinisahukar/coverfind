@@ -1,8 +1,8 @@
 # Careculator
 
-> "We don't just tell you where to go for care — we tell you where to go _based on what you can afford and what minimizes your financial risk_."
+> Find care that's right for you — ranked by real patient outcomes, not just distance or cost.
 
-Careculator is a smart healthcare cost and care matching tool. Users input their symptoms, location, and insurance (optional) and get ranked clinic recommendations with estimated costs, recovery scores, and financial risk breakdowns.
+Careculator is a healthcare cost and care matching tool built for the hackathon. Users search for a medical condition, optionally add their insurance plan, and get ranked clinic recommendations with estimated costs, recovery signals, and side-by-side comparisons �� all powered by real HRSA and CMS data.
 
 ---
 
@@ -10,28 +10,25 @@ Careculator is a smart healthcare cost and care matching tool. Users input their
 
 - People don't know where to go for care or how much it will cost
 - A bad decision can mean thousands in unexpected bills
-- Tools like Zocdoc help book appointments — but don't consider cost + insurance + urgency together
+- Tools like Zocdoc help book appointments — but don't factor in cost + insurance + clinical outcomes together
 
 ## The Solution
 
-- **Smart Care + Cost Matching** — ranked clinic results with total cost estimates and recovery scores
-- **AI Financial + Medical Brain** — "Should I go to ER or urgent care?" answered with cost context
-- **Real Cost Breakdown** — insurance coverage estimate, out-of-pocket cost, worst-case scenario
-- **Financial Shock Alert** — warns when a choice costs 5x more than necessary
-- **What-if Simulator** — instant recalculation if insurance status changes
+- **Smart Care + Cost Matching** — ranked clinic results using real federal data (9,300+ clinics, 7,300+ insurance plans)
+- **Insurance-Aware** — optional wizard adjusts cost estimates using actual CMS plan coverage tiers
+- **Recovery Signals** — recovery speed, outcome quality, treatment burden derived from patient data
+- **Side-by-Side Compare** — compare clinics on every metric that matters, with cost bar charts
 
 ---
 
-## Local Development
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
 - npm
 
-### Running the full stack
-
-From the project root:
+### Run the app
 
 ```bash
 npm install      # installs concurrently (one-time)
@@ -45,100 +42,13 @@ npm run dev      # starts backend + frontend together
 | Swagger UI   | http://localhost:3001/api/docs      |
 | OpenAPI JSON | http://localhost:3001/api/docs.json |
 
-The Vite dev server proxies all `/api` requests to the backend automatically — no CORS issues during development.
+Vite proxies `/api/*` to the backend — no CORS issues in development.
 
-### Running individually
+### Run individually
 
 ```bash
-# Backend only
-cd backend && npm run dev
-
-# Frontend only
-cd frontend && npm run dev
-```
-
----
-
-## API Documentation
-
-Interactive Swagger UI is available at **http://localhost:3001/api/docs** when the backend is running.
-
-The raw OpenAPI spec (importable into Postman or Insomnia) is at **http://localhost:3001/api/docs.json**.
-
-### Endpoints
-
-| Method | Path                           | Description                                      |
-| ------ | ------------------------------ | ------------------------------------------------ |
-| GET    | `/api/health`                  | Health check                                     |
-| GET    | `/api/clinics`                 | Search clinics (alias for `/api/clinics/search`) |
-| GET    | `/api/clinics/search`          | Search by condition, location, and preferences   |
-| GET    | `/api/clinics/recommendations` | Infer specialty + quick-search tag presets       |
-| GET    | `/api/clinics/compare`         | Compare clinics side-by-side                     |
-| POST   | `/api/clinics/compare`         | Compare clinics side-by-side (body payload)      |
-| GET    | `/api/clinics/:id`             | Get a single clinic by ID                        |
-| GET    | `/api/insurance`               | List supported insurance plans                   |
-| POST   | `/api/cards`                   | Upload and parse an insurance card               |
-
-To add docs for a new endpoint, add a `@swagger` JSDoc comment to its route file — the spec updates automatically on the next server start.
-
----
-
-## Project Structure
-
-```
-coverfind/
-├── package.json              # Root — runs both services via concurrently
-│
-├── backend/
-│   ├── index.js              # Express app entry point + Swagger UI mount
-│   ├── package.json
-│   └── src/
-│       ├── swagger.js        # OpenAPI spec config (swagger-jsdoc)
-│       ├── config/
-│       │   └── index.js
-│       ├── controllers/
-│       │   ├── clinics.controller.js
-│       │   ├── insurance.controller.js
-│       │   └── cards.controller.js
-│       ├── middleware/
-│       │   ├── errorHandler.js
-│       │   └── validateRequest.js
-│       ├── models/
-│       │   ├── clinic.model.js
-│       │   └── provider.model.js
-│       ├── routes/           # @swagger annotations live here
-│       │   ├── clinics.routes.js
-│       │   ├── insurance.routes.js
-│       │   └── cards.routes.js
-│       ├── services/
-│       │   ├── dataLayer.service.js
-│       │   ├── hrsa.service.js
-│       │   ├── insurance.service.js
-│       │   └── npi.service.js
-│       └── utils/
-│           ├── csvLoader.js
-│           └── haversine.js
-│
-├── frontend/
-│   ├── index.html
-│   ├── vite.config.ts        # Vite + /api proxy to localhost:3001
-│   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── package.json
-│   └── src/
-│       ├── main.tsx          # React entry point
-│       ├── App.tsx
-│       ├── index.css         # Tailwind base styles
-│       ├── vite-env.d.ts
-│       └── components/
-│           ├── SearchForm.tsx
-│           ├── ResultsList.tsx
-│           ├── ClinicCard.tsx
-│           └── MapView.tsx
-│
-└── models/
-    └── pre-processing.ipynb  # Data pre-processing notebook
+cd backend && npm run dev       # Backend only (port 3001)
+cd frontend && npm run dev      # Frontend only (port 5173)
 ```
 
 ---
@@ -148,6 +58,52 @@ coverfind/
 | Layer     | Technology                                      |
 | --------- | ----------------------------------------------- |
 | Frontend  | React 18, TypeScript, Vite, Tailwind CSS        |
-| Backend   | Node.js, Express, ES Modules                    |
-| API Docs  | swagger-jsdoc, swagger-ui-express (OpenAPI 3.0) |
+| Backend   | Node.js, Express, ES Modules, better-sqlite3    |
+| Database  | SQLite (~264 MB — HRSA + CMS federal data)      |
+| API Docs  | swagger-jsdoc + swagger-ui-express (OpenAPI 3.0) |
 | Dev Tools | concurrently, node --watch                      |
+
+---
+
+## Project Structure
+
+```
+coverfind/
+├── package.json              # Root — concurrently runs both services
+├── backend/
+│   ├── index.js              # Express entry point
+│   └── src/
+│       ├── config/           # DB path, pagination constants
+│       ├── controllers/      # HTTP request handlers
+│       ├── models/           # SQL query layer (prepared statements)
+│       ├── services/         # Business logic (search, scoring, insurance)
+│       ├── routes/           # Route definitions + Swagger annotations
+│       ├── middleware/       # Error handler + async wrapper
+│       ├── utils/            # Haversine distance, logger
+│       ├── data/             # SQLite database file
+│       └── scripts/          # Python DB build + migration scripts
+├── frontend/
+│   └── src/
+│       ├── pages/            # HomePage, ResultsPage, ComparePage, SummaryPage
+│       ├── components/       # Navbar, Footer, StatusBadge, PlanSelect, etc.
+│       ├── lib/api.ts        # Typed API client (all backend calls)
+│       └── context/          # Dark/light theme provider
+└── models/                   # ML notebooks + pipeline
+```
+
+---
+
+## Data Sources
+
+All data is real, sourced from US federal agencies:
+
+- **HRSA** (Health Resources & Services Administration) — 9,323 Federally Qualified Health Centers with geocoded locations, specialties, and clinical outcome scores
+- **CMS** (Centers for Medicare & Medicaid Services) — 7,349 marketplace insurance plans, 1,759 provider networks, 54,205 service area mappings, and 3.4M age-banded premium rates
+
+No data is hardcoded or synthetic. Everything flows through SQL queries to the SQLite database, then through REST APIs to the frontend.
+
+---
+
+## Documentation
+
+For detailed technical documentation covering architecture, data flow, API specifications, database schema, frontend component tree, and design decisions, see **[TECHNICAL.md](./TECHNICAL.md)**.
