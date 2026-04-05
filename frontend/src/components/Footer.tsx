@@ -42,10 +42,10 @@ export default function Footer() {
   return (
     <footer className="surface-footer shrink-0">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-          <div className="space-y-1 min-w-0 flex-1">
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div className="text-center sm:text-left space-y-1 min-w-0 flex-1">
             <p className="text-sm text-ink font-semibold tracking-tight">Careculator</p>
-            <p className="text-[11px] sm:text-xs text-ink-muted leading-relaxed max-w-prose">
+            <p className="text-[11px] sm:text-xs text-ink-muted leading-relaxed max-w-prose mx-auto sm:mx-0">
               Demo only — not medical advice. Illustrative estimates; confirm coverage and care with your insurer
               and licensed providers.
             </p>
@@ -65,9 +65,11 @@ export default function Footer() {
             </div>
           )}
         </div>
-        <p className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-700/80 text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500">
-          © {new Date().getFullYear()} Careculator
-        </p>
+        <div className="mt-3 pt-3 border-t border-slate-200/80 dark:border-slate-700/80 flex justify-end">
+          <p className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500">
+            © {new Date().getFullYear()} Careculator
+          </p>
+        </div>
       </div>
     </footer>
   );
