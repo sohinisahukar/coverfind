@@ -1,13 +1,9 @@
 /**
  * Navbar.tsx — Top navigation bar with logo, theme toggle, and mobile menu.
- *
- * - Desktop: shows dark/light toggle + "Try Demo" button inline.
- * - Mobile:  collapses into a hamburger menu; theme toggle stays visible.
- * - "Try Demo" navigates to /results with no search params (shows all clinics).
  */
 
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import LogoMark from './LogoMark';
 import bulbLight from '../assets/light-bulb-icon.svg';
@@ -26,6 +22,12 @@ export default function Navbar() {
         <span className="text-ink font-semibold text-lg tracking-tight">Careculator</span>
       </Link>
 
+      {/* Desktop nav links — only render when not colliding with hanging bulb */}
+      <div className={`hidden sm:flex items-center gap-5 ${isHome ? 'mr-24' : ''}`}>
+        <NavLink to="/how-it-works" className={({ isActive }) => `text-sm transition-colors whitespace-nowrap ${isActive ? 'text-cf-teal font-medium' : 'text-ink-muted hover:text-ink'}`}>How it works</NavLink>
+        <NavLink to="/about-estimates" className={({ isActive }) => `text-sm transition-colors whitespace-nowrap ${isActive ? 'text-cf-teal font-medium' : 'text-ink-muted hover:text-ink'}`}>About estimates</NavLink>
+      </div>
+
       {/* Hanging bulb — only on homepage, desktop */}
       {isHome && (
         <button
@@ -33,7 +35,6 @@ export default function Navbar() {
           onClick={toggleTheme}
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           className="absolute right-8 top-0 hidden sm:flex flex-col items-center group z-20"
-          style={{ paddingBottom: 0 }}
         >
           <div className="w-px h-20 bg-slate-400/50 dark:bg-slate-500/50 group-hover:bg-cf-teal/60 transition-colors" />
           <img
@@ -72,6 +73,8 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className="absolute top-full left-0 right-0 z-50 glass-card rounded-none border-t border-slate-200 dark:border-slate-700 flex flex-col p-4 gap-3 sm:hidden">
+          <Link to="/how-it-works" onClick={() => setMenuOpen(false)} className="text-sm text-ink-muted text-center py-1 hover:text-ink transition-colors">How it works</Link>
+          <Link to="/about-estimates" onClick={() => setMenuOpen(false)} className="text-sm text-ink-muted text-center py-1 hover:text-ink transition-colors">About estimates</Link>
           <Link to="/results" onClick={() => setMenuOpen(false)} className="btn-primary text-sm py-2 w-full text-center">
             Browse All
           </Link>

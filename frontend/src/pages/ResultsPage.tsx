@@ -14,8 +14,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'motion/react';
 import StatusBadge from '../components/StatusBadge';
-import { VisitsIcon, RecoveryIcon, OutcomeIcon, BurdenIcon, CostIcon, MatchIcon } from '../components/MedicalIcons';
+import { VisitsIcon, RecoveryIcon, OutcomeIcon, BurdenIcon, CostIcon, MatchIcon, SpecialtyIcon } from '../components/MedicalIcons';
 import {
   fetchClinics,
   fetchInsuranceProviders,
@@ -194,55 +195,85 @@ export default function ResultsPage() {
 
               {!loading && !error && topClinic && (
                 <>
-                  <div className="glass-card p-4 bg-top-rec">
+                  {/* Decision summary band */}
+                  <motion.div
+                    className="glass-card p-4 bg-top-rec"
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } }}
+                  >
                     <div className="flex items-start gap-3">
                       <div className="w-7 h-7 rounded-full bg-cf-teal/15 border border-cf-teal/35 flex items-center justify-center shrink-0 mt-0.5">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-cf-teal">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-ink font-semibold text-sm sm:text-base">Top Recommendation: {topClinic.name}</p>
                         <p className="text-subtle text-xs sm:text-sm mt-0.5">{topClinic.patientSummary}</p>
                         {topClinic.highlightTags.length > 0 && (
-                          <p className="text-muted text-xs mt-1.5 hidden sm:block">
-                            Why it's best: {topClinic.highlightTags.join(' · ')}
-                          </p>
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {topClinic.highlightTags.slice(0, 3).map(tag => (
+                              <span key={tag} className="inline-flex items-center gap-1 text-[10px] font-medium text-teal-800 dark:text-teal-200 bg-teal-100/80 dark:bg-teal-900/40 border border-teal-200/60 dark:border-teal-700/50 rounded-full px-2 py-0.5">
+                                <SpecialtyIcon specialty={tag} className="w-2.5 h-2.5" />
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
 
-                  <ExpandedClinicCard
-                    clinic={topClinic}
-                    isComparing={comparing.includes(topClinic.id)}
-                    onToggleCompare={() => toggleCompare(topClinic.id)}
-                    insuranceTier={null}
-                    coveragePct={insuranceContext?.coveragePct}
-                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.4, delay: 0.1, ease: 'easeOut' } }}
+                  >
+                    <ExpandedClinicCard
+                      clinic={topClinic}
+                      isComparing={comparing.includes(topClinic.id)}
+                      onToggleCompare={() => toggleCompare(topClinic.id)}
+                      insuranceTier={null}
+                      coveragePct={insuranceContext?.coveragePct}
+                    />
+                  </motion.div>
 
                   {otherClinics.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <motion.div
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                      initial="hidden"
+                      animate="show"
+                      variants={{ hidden: {}, show: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } } }}
+                    >
                       {otherClinics.map(clinic => (
-                        <CompactClinicCard
+                        <motion.div
                           key={clinic.id}
-                          clinic={clinic}
-                          isComparing={comparing.includes(clinic.id)}
-                          onToggleCompare={() => toggleCompare(clinic.id)}
-                          onViewDetails={() => navigate(`/compare?ids=${topClinic.id},${clinic.id}`)}
-                          insuranceTier={null}
-                          coveragePct={insuranceContext?.coveragePct}
-                        />
+                          variants={{ hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } } }}
+                        >
+                          <CompactClinicCard
+                            clinic={clinic}
+                            isComparing={comparing.includes(clinic.id)}
+                            onToggleCompare={() => toggleCompare(clinic.id)}
+                            onViewDetails={() => navigate(`/compare?ids=${topClinic.id},${clinic.id}`)}
+                            insuranceTier={null}
+                            coveragePct={insuranceContext?.coveragePct}
+                          />
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   )}
                 </>
               )}
           </div>
         </div>
 
+        <AnimatePresence>
         {comparing.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 md:left-52 lg:left-56 z-20 bg-compare-strip px-4 md:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:pt-4 md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-3">
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 md:left-52 lg:left-56 z-20 bg-compare-strip px-4 md:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:pt-4 md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))] flex items-center justify-between gap-3"
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1, transition: { type: 'spring', stiffness: 320, damping: 28 } }}
+            exit={{ y: 80, opacity: 0, transition: { duration: 0.25, ease: 'easeIn' } }}
+          >
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
@@ -266,8 +297,9 @@ export default function ResultsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -317,18 +349,24 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
   const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier, coveragePct);
   const hasDiscount = adjCost !== fullCost;
   return (
-    <div className="glass-card p-4 md:p-5">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-white">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+    <div className="glass-card p-4 md:p-5 ring-1 ring-cf-teal/20 dark:ring-teal-500/15">
+      <div className="flex items-start justify-between mb-4 gap-2">
+        <div className="flex items-start gap-2.5 flex-wrap min-w-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cf-teal to-cf-blue flex items-center justify-center overflow-hidden shrink-0 mt-0.5 shadow-sm shadow-teal-500/30">
+            <SpecialtyIcon specialty={clinic.specialties?.[0] ?? ''} className="w-4 h-4 text-white" />
           </div>
-          <span className="text-ink font-semibold text-sm sm:text-base">{clinic.name}</span>
-          {isBestValue && <span className="badge-teal">Best Value</span>}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-ink font-semibold text-sm sm:text-base">{clinic.name}</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-teal-700 dark:text-teal-300 bg-teal-100/80 dark:bg-teal-900/40 border border-teal-200/60 dark:border-teal-700/50 rounded-full px-2 py-0.5">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Best Overall Fit
+              </span>
+              {isBestValue && <span className="badge-teal text-xs">Best Value</span>}
+            </div>
+          </div>
         </div>
-        <span className="text-muted text-sm shrink-0 ml-2">
+        <span className="text-muted text-sm shrink-0">
           {clinic.distanceMiles != null ? `${clinic.distanceMiles} mi` : '—'}
         </span>
       </div>

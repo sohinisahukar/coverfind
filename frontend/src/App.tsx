@@ -22,6 +22,8 @@ import HomePage from './pages/HomePage';
 import ResultsPage from './pages/ResultsPage';
 import ComparePage from './pages/ComparePage';
 import SummaryPage from './pages/SummaryPage';
+import HowItWorksPage from './pages/HowItWorksPage';
+import AboutEstimatesPage from './pages/AboutEstimatesPage';
 
 export default function App() {
   const location = useLocation();
@@ -61,6 +63,8 @@ export default function App() {
                 <Route path="/results" element={<ResultsPage />} />
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/compare/summary" element={<SummaryPage />} />
+                <Route path="/how-it-works" element={<HowItWorksPage />} />
+                <Route path="/about-estimates" element={<AboutEstimatesPage />} />
               </Routes>
             </div>
             <Footer />
