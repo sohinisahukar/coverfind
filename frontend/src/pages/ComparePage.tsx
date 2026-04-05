@@ -1,3 +1,19 @@
+/**
+ * ComparePage.tsx — Side-by-side clinic comparison.
+ *
+ * URL: /compare?ids=clinicA,clinicB
+ *
+ * Fetches the requested clinics via GET /api/clinics/compare?ids=...
+ * and renders them in a responsive grid (1-col on mobile, 2-col on desktop).
+ *
+ * Each clinic card shows key metrics (visits, recovery, outcome, cost, burden)
+ * with a cost bar chart when 2+ clinics are present.
+ *
+ * Note: Outcome quality uses a custom badge (high=green/good, low=red/bad)
+ * because the generic StatusBadge treats "high" as bad (correct for burden,
+ * wrong for outcome quality).
+ */
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -26,9 +42,6 @@ export default function ComparePage() {
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get('ids')]);
-
-  const left = clinics[0];
-  const right = clinics[1];
 
   const maxCost = Math.max(...clinics.map(c => c.totalCostEstimate), 1);
   const barHeight = (cost: number) => Math.round((cost / maxCost) * 110);
@@ -69,112 +82,56 @@ export default function ComparePage() {
 
       {!loading && !error && ids.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {left && <ProviderColumn clinic={left} isRecommended />}
-            {right && <ProviderColumn clinic={right} isRecommended={false} />}
-
-            <div className="glass-card p-4 sm:p-5 flex flex-col items-center justify-center text-center border-dashed border-slate-300 dark:border-slate-600 min-h-[280px]">
-              <div className="w-10 h-10 rounded-full border-2 border-cf-teal/40 flex items-center justify-center mb-4">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="text-cf-teal">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <p className="text-ink font-semibold mb-2">Choose Another Provider</p>
-              <p className="text-muted text-sm mb-5">Compare a different provider side-by-side.</p>
-              <button onClick={() => navigate('/results')} className="btn-ghost text-sm py-2 px-6">
-                Compare
-              </button>
-            </div>
+          <div className={`grid grid-cols-1 gap-4 ${clinics.length >= 2 ? 'md:grid-cols-2' : ''}`}>
+            {clinics.map((clinic, i) => (
+              <ProviderColumn key={clinic.id} clinic={clinic} isRecommended={i === 0} />
+            ))}
           </div>
 
-          {(left || right) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-              {left && (
-                <div className="glass-card p-4 sm:p-5">
-                  <h3 className="text-ink font-semibold mb-2 text-sm sm:text-base">Why we recommend this provider</h3>
-                  <p className="text-subtle text-xs sm:text-sm leading-relaxed">{left.patientSummary}</p>
-                </div>
-              )}
-
-              {left && right && (
-                <div className="glass-card p-4 sm:p-5 flex flex-col justify-center">
-                  <div className="flex items-end justify-center gap-6 sm:gap-8 h-28 sm:h-32">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="text-subtle text-xs font-medium">~${left.totalCostEstimate.toLocaleString()}</span>
-                      <div
-                        className="w-14 sm:w-16 rounded-t-lg bg-gradient-to-t from-cf-blue to-cf-teal"
-                        style={{ height: `${barHeight(left.totalCostEstimate)}px` }}
-                      />
-                      <span className="text-muted text-xs">{left.name.split(' ')[0]}</span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1.5">
-                      <span className="text-subtle text-xs font-medium">~${right.totalCostEstimate.toLocaleString()}</span>
-                      <div
-                        className="w-14 sm:w-16 rounded-t-lg bg-gradient-to-t from-amber-600 to-amber-400"
-                        style={{ height: `${barHeight(right.totalCostEstimate)}px` }}
-                      />
-                      <span className="text-muted text-xs">{right.name.split(' ')[0]}</span>
-                    </div>
+          {clinics.length >= 2 && (
+            <div className="glass-card p-4 sm:p-5 flex flex-col justify-center mt-4">
+              <div className="flex items-end justify-center gap-6 sm:gap-8 h-28 sm:h-32">
+                {clinics.map((c, i) => (
+                  <div key={c.id} className="flex flex-col items-center gap-1.5">
+                    <span className="text-subtle text-xs font-medium">~${c.totalCostEstimate.toLocaleString()}</span>
+                    <div
+                      className={`w-14 sm:w-16 rounded-t-lg ${i === 0 ? 'bg-gradient-to-t from-cf-blue to-cf-teal' : 'bg-gradient-to-t from-amber-600 to-amber-400'}`}
+                      style={{ height: `${barHeight(c.totalCostEstimate)}px` }}
+                    />
+                    <span className="text-muted text-xs">{c.name.split(' ')[0]}</span>
                   </div>
-                  <div className="border-t border-slate-200 dark:border-slate-700/85 mt-3" />
-                </div>
-              )}
+                ))}
+              </div>
+              <div className="border-t border-slate-200 dark:border-slate-700/85 mt-3" />
             </div>
           )}
 
-          {(left || right) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-4">
-              {left && (
-                <button
-                  type="button"
-                  className="btn-primary py-3 sm:py-4 text-sm sm:text-base"
-                  onClick={() => {
-                    if (left.website) {
-                      const url = /^https?:\/\//i.test(left.website) ? left.website : `https://${left.website}`;
-                      window.open(url, '_blank');
-                    } else {
-                      navigate('/results');
-                    }
-                  }}
-                >
-                  Choose {left.name}
-                </button>
-              )}
-              {right && (
-                <button
-                  type="button"
-                  className="btn-ghost py-3 sm:py-4 text-sm sm:text-base flex items-center justify-center gap-2"
-                  onClick={() => {
-                    if (right.website) {
-                      const url = /^https?:\/\//i.test(right.website) ? right.website : `https://${right.website}`;
-                      window.open(url, '_blank');
-                    } else {
-                      navigate('/results');
-                    }
-                  }}
-                >
-                  Choose {right.name}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              )}
+          {clinics.length > 0 && (
+            <div className={`grid grid-cols-1 gap-3 sm:gap-4 mt-4 ${clinics.length >= 2 ? 'sm:grid-cols-2' : ''}`}>
+              {clinics.map(c => (
+                <div key={c.id} className="glass-card p-4 sm:p-5 flex flex-col gap-3">
+                  <h3 className="text-ink font-semibold text-sm sm:text-base">{c.name}</h3>
+                  <p className="text-subtle text-xs sm:text-sm leading-relaxed">{c.patientSummary}</p>
+                  {c.website ? (
+                    <a
+                      href={/^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary py-2.5 text-sm text-center"
+                    >
+                      Visit Website
+                    </a>
+                  ) : (
+                    <p className="text-muted text-xs italic">Website not available for this clinic</p>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </>
       )}
 
-      <div className="flex items-center justify-between mt-5 sm:mt-6 text-muted text-sm">
-        <button
-          type="button"
-          onClick={() => navigate(`/compare/summary?ids=${ids.join(',')}`)}
-          className="flex items-center gap-1 hover:text-ink transition-colors"
-        >
-          Summary view
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+      <div className="flex items-center justify-end mt-5 sm:mt-6 text-muted text-sm">
         <button type="button" onClick={() => navigate('/results')} className="flex items-center gap-1 hover:text-ink transition-colors">
           Back to results
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -214,13 +171,23 @@ function ProviderColumn({ clinic, isRecommended }: { clinic: Clinic; isRecommend
       <div className="divide-y divide-slate-200/90 dark:divide-slate-700/85">
         <Row label="Avg Visits Needed" value={String(clinic.avgVisitsNeeded)} plain />
         <Row label="Recovery Speed"><StatusBadge status={clinic.recoverySpeed} /></Row>
-        <Row label="Outcome Quality"><StatusBadge status={clinic.outcomeQuality} /></Row>
+        <Row label="Outcome Quality"><OutcomeQualityBadge quality={clinic.outcomeQuality} /></Row>
         <Row label="Total Cost" value={`~$${clinic.totalCostEstimate.toLocaleString()}`} plain highlight />
         <Row label="Per Visit Cost" value={`$${clinic.perVisitCost}`} plain highlight />
         <Row label="Treatment Burden"><StatusBadge status={clinic.treatmentBurden} /></Row>
       </div>
     </div>
   );
+}
+
+function OutcomeQualityBadge({ quality }: { quality: string }) {
+  const map: Record<string, { cls: string; icon: string }> = {
+    high:     { cls: 'badge-green', icon: '✓' },
+    moderate: { cls: 'badge-amber', icon: '~' },
+    low:      { cls: 'badge-red',   icon: '⚠' },
+  };
+  const { cls, icon } = map[quality] || map.moderate;
+  return <span className={cls}>{icon} {quality}</span>;
 }
 
 function Row({ label, value, children, plain, highlight }: {
@@ -231,7 +198,7 @@ function Row({ label, value, children, plain, highlight }: {
   highlight?: boolean;
 }) {
   return (
-    <div className="row-divider">
+    <div className="flex items-center justify-between py-2.5">
       <span className="text-muted text-xs sm:text-sm">{label}</span>
       {plain
         ? <span className={`font-semibold text-ink ${highlight ? 'text-base sm:text-lg' : ''}`}>{value}</span>

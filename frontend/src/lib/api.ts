@@ -1,5 +1,18 @@
 /**
- * In dev, use same-origin `/api/...` so Vite's proxy (vite.config.ts) forwards to the backend.
+ * api.ts — Frontend API client.
+ *
+ * All backend communication goes through this module. Each function maps
+ * to one backend endpoint, normalises the response, and returns typed data.
+ *
+ * Endpoint map:
+ *   fetchClinics()            -> GET /api/clinics/search
+ *   fetchCompare()            -> GET /api/clinics/compare
+ *   fetchRecommendations()    -> GET /api/clinics/recommendations
+ *   fetchInsuranceProviders() -> GET /api/insurance/providers
+ *   fetchInsuranceTiers()     -> GET /api/insurance
+ *   zipToCoords()             -> external zippopotam.us API
+ *
+ * In dev, Vite's proxy (vite.config.ts) forwards /api/* to the backend.
  * Set VITE_API_URL when the UI is hosted separately from the API.
  */
 function apiBase(): string {

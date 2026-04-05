@@ -1,3 +1,16 @@
+/**
+ * HomePage.tsx — Multi-step search wizard.
+ *
+ * Flow:  basics (query + ZIP) -> insurance prompt -> provider -> policy -> finalize
+ *
+ * All data is fetched from the backend APIs:
+ *   - Insurance providers: GET /api/insurance/providers
+ *   - Quick-search tags:   GET /api/clinics/recommendations
+ *   - ZIP geocoding:       external zippopotam.us API (see api.ts)
+ *
+ * On submit, builds a query-string URL and navigates to /results.
+ */
+
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlanSelect from '../components/PlanSelect';
@@ -382,7 +395,7 @@ export default function HomePage() {
                 )}
                 {!providersLoading && !providersError && (
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[min(50vh,20rem)] overflow-y-auto pr-1 -mr-1">
-                    {providers.map(p => (
+                    {[...providers].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                       <li key={p.id}>
                         <button
                           type="button"

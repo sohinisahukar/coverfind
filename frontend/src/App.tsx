@@ -1,3 +1,16 @@
+/**
+ * App.tsx — Root layout and route definitions.
+ *
+ * Renders the persistent shell (navbar, footer, animated background)
+ * and maps URL paths to page components via react-router-dom.
+ *
+ * Routes:
+ *   /                  -> HomePage     (search wizard)
+ *   /results           -> ResultsPage  (clinic search results + filters)
+ *   /compare?ids=a,b   -> ComparePage  (side-by-side comparison)
+ *   /compare/summary   -> SummaryPage  (card-grid overview)
+ */
+
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
@@ -11,9 +24,13 @@ import SummaryPage from './pages/SummaryPage';
 export default function App() {
   return (
     <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden">
+      {/* Animated pill / capsule canvas background */}
       <MedMotifBackground />
+
       <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
         <Navbar />
+
+        {/* id="app-scroll-root" is used by Footer's scrollAppToTop() */}
         <main
           id="app-scroll-root"
           className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-smooth"
@@ -25,8 +42,11 @@ export default function App() {
             <Route path="/compare/summary" element={<SummaryPage />} />
           </Routes>
         </main>
+
         <Footer />
       </div>
+
+      {/* Toast notifications (errors, confirmations) */}
       <Toaster
         position="bottom-right"
         toastOptions={{

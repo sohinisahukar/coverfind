@@ -1,3 +1,16 @@
+/**
+ * ResultsPage.tsx — Clinic search results with sidebar filters.
+ *
+ * Reads search parameters from the URL (set by HomePage wizard):
+ *   q, zip, priority, flow, coverage, providerId, policyId, lat, lng
+ *
+ * Data flow:
+ *   1. Fetches clinics from GET /api/clinics/search (with priorityWeight, lat/lng)
+ *   2. Client-side distance filter via the sidebar slider
+ *   3. Optional insurance tier overlay (sidebar) to show adjusted costs
+ *   4. Users toggle clinics into a compare set, then navigate to /compare
+ */
+
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -36,6 +49,8 @@ export default function ResultsPage() {
   const [insuranceTiers, setInsuranceTiers] = useState<InsuranceTier[]>([]);
   const [selectedTier, setSelectedTier] = useState<InsuranceTier | null>(null);
 
+  // Resolve the insurance context from URL params + provider list.
+  // Only populated when the user came through the "Yes, add insurance" wizard flow.
   const insuranceContext = useMemo(() => {
     if (flow !== 'insurance' || !providerId || !policyId) return null;
     const prov = findProviderById(insuranceProviders, providerId);
@@ -62,7 +77,6 @@ export default function ResultsPage() {
     fetchClinics({ q, priorityWeight: priority, lat, lng })
       .then(data => {
         setAllClinics(data);
-        if (data.length > 0) setComparing([data[0].id]);
       })
       .catch(err => {
         const msg = (err as Error).message;
@@ -79,6 +93,8 @@ export default function ResultsPage() {
       .catch(() => {});
   }, [insuranceOpen, insuranceTiers.length]);
 
+  // Client-side distance filter — backend returns all clinics within 100mi,
+  // this slider narrows them further without a new API call.
   const clinics = useMemo(
     () => allClinics.filter(c => (c.distanceMiles ?? 0) <= distance),
     [allClinics, distance],
@@ -139,8 +155,8 @@ export default function ResultsPage() {
           label="Distance"
           value={distance}
           onChange={setDistance}
-          min={1}
-          max={25}
+          min={5}
+          max={100}
           display={`Up to ${distance} mi`}
         />
         <div>
@@ -250,7 +266,7 @@ export default function ResultsPage() {
 
               {!loading && !error && clinics.length === 0 && (
                 <div className="glass-card p-6 text-center text-muted">
-                  No clinics found matching your search. Try a different query or increase the distance filter.
+                  We couldn't find clinics near you for this search. Try broadening your distance or adjusting your search terms.
                 </div>
               )}
 
@@ -280,6 +296,7 @@ export default function ResultsPage() {
                     isComparing={comparing.includes(topClinic.id)}
                     onToggleCompare={() => toggleCompare(topClinic.id)}
                     insuranceTier={selectedTier}
+                    coveragePct={insuranceContext?.coveragePct}
                   />
 
                   {otherClinics.length > 0 && (
@@ -292,6 +309,7 @@ export default function ResultsPage() {
                           onToggleCompare={() => toggleCompare(clinic.id)}
                           onViewDetails={() => navigate(`/compare?ids=${topClinic.id},${clinic.id}`)}
                           insuranceTier={selectedTier}
+                          coveragePct={insuranceContext?.coveragePct}
                         />
                       ))}
                     </div>
@@ -334,9 +352,11 @@ export default function ResultsPage() {
   );
 }
 
-function withInsurance(cost: number, tier: InsuranceTier | null): number {
-  if (!tier) return cost;
-  return Math.round(cost * (1 - tier.coveragePct / 100));
+/** Apply insurance coverage discount to a cost. Returns original cost if no tier/coverage is set. */
+function withInsurance(cost: number, tier: InsuranceTier | null, coveragePct?: number | null): number {
+  const pct = tier?.coveragePct ?? coveragePct;
+  if (pct == null) return cost;
+  return Math.round(cost * (1 - pct / 100));
 }
 
 function FilterSlider({ label, value, onChange, min, max, display }: {
@@ -363,16 +383,18 @@ function FilterSlider({ label, value, onChange, min, max, display }: {
   );
 }
 
-function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTier }: {
+function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTier, coveragePct }: {
   clinic: Clinic;
   isComparing: boolean;
   onToggleCompare: () => void;
   insuranceTier: InsuranceTier | null;
+  coveragePct?: number | null;
 }) {
   const isBestValue = clinic.badges.includes('best-value');
   const fullCost = clinic.totalCostEstimate;
-  const adjCost = withInsurance(fullCost, insuranceTier);
-  const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier);
+  const adjCost = withInsurance(fullCost, insuranceTier, coveragePct);
+  const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier, coveragePct);
+  const hasDiscount = adjCost !== fullCost;
   return (
     <div className="glass-card p-4 md:p-5">
       <div className="flex items-center justify-between mb-4">
@@ -397,7 +419,7 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
         <Stat label="Burden" value={clinic.treatmentBurden} badge />
         <div>
           <p className="text-muted text-xs mb-1">Est. Cost</p>
-          {insuranceTier ? (
+          {hasDiscount ? (
             <>
               <p className="font-semibold text-cf-teal text-sm">~${adjCost.toLocaleString()}</p>
               <p className="text-muted text-xs line-through">~${fullCost.toLocaleString()}</p>
@@ -412,7 +434,7 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
         <p className="text-subtle text-xs sm:text-sm">{clinic.patientSummary}</p>
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           <span className="text-subtle text-sm font-medium">
-            {insuranceTier ? (
+            {hasDiscount ? (
               <>
                 ${adjPerVisit}/visit
                 <span className="text-muted text-xs ml-1 font-normal">(w/ plan)</span>
@@ -436,14 +458,15 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
   );
 }
 
-function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails, insuranceTier }: {
+function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails, insuranceTier, coveragePct }: {
   clinic: Clinic;
   isComparing: boolean;
   onToggleCompare: () => void;
   onViewDetails: () => void;
   insuranceTier: InsuranceTier | null;
+  coveragePct?: number | null;
 }) {
-  const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier);
+  const adjPerVisit = withInsurance(clinic.perVisitCost, insuranceTier, coveragePct);
   return (
     <div className="glass-card p-4">
       <div className="flex items-center justify-between mb-3">
@@ -468,7 +491,7 @@ function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails
           <span className="text-muted text-xs">Per Visit</span>
           <span className="text-ink text-xs font-medium">
             ${adjPerVisit}/visit
-            {insuranceTier && clinic.perVisitCost !== adjPerVisit && (
+            {clinic.perVisitCost !== adjPerVisit && (
               <span className="text-muted line-through ml-1">${clinic.perVisitCost}</span>
             )}
           </span>
