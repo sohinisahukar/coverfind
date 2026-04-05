@@ -1,0 +1,10 @@
+---
+description: User-visible UI must not expose implementation paths or dev jargon
+globs: frontend/src/**/*.tsx
+---
+
+# Product UI copy
+
+- Do **not** show repo paths (e.g. `backend/data/…`), JSON filenames, API route strings, `localhost`, or port numbers in normal user-facing labels, helper text, or success states.
+- Error messages should stay generic (“try again”, “check your connection”) unless the product intentionally surfaces a support code.
+- Document data sources and file layout in **comments**, **README**, or backend docs—not in the interface.

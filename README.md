@@ -34,9 +34,13 @@ Careculator is a smart healthcare cost and care matching tool. Users input their
 From the project root:
 
 ```bash
-npm install      # installs concurrently (one-time)
+npm install      # installs root dev tools + backend + frontend (npm workspaces)
 npm run dev      # starts backend + frontend together
 ```
+
+Use **npm 7+** (comes with Node 16+). If you previously hit install loops, remove stray `node_modules` folders and `package-lock.json` files, then run `npm install` again from the repo root only.
+
+Do not add `"careculator": "file:.."` to `backend` or `frontend` — that links the root package into itself and can make `postinstall` / install recurse forever on Windows.
 
 | Service       | URL                              |
 | ------------- | -------------------------------- |

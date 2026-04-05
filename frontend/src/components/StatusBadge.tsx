@@ -1,4 +1,14 @@
-type Status = 'fast' | 'slow' | 'moderate' | 'high' | 'low' | 'best-value' | 'high-visits' | 'top-rec' | 'new';
+type Status =
+  | 'fast'
+  | 'slow'
+  | 'moderate'
+  | 'medium'
+  | 'high'
+  | 'low'
+  | 'best-value'
+  | 'high-visits'
+  | 'top-rec'
+  | 'new';
 
 interface Props {
   status: Status;
@@ -9,6 +19,7 @@ const config: Record<Status, { className: string; icon: string }> = {
   fast:       { className: 'badge-green', icon: '⚡' },
   slow:       { className: 'badge-red', icon: '🔴' },
   moderate:   { className: 'badge-amber', icon: '🟡' },
+  medium:     { className: 'badge-amber', icon: '🟡' },
   high:       { className: 'badge-red', icon: '⚠' },
   low:        { className: 'badge-green', icon: '✅' },
   'best-value': { className: 'badge-teal', icon: '🏆' },
@@ -21,6 +32,7 @@ const labels: Record<Status, string> = {
   fast: 'Fast',
   slow: 'Slow',
   moderate: 'Moderate',
+  medium: 'Medium',
   high: 'High',
   low: 'Low',
   'best-value': 'Best Value',

@@ -36,7 +36,12 @@ export async function compare(req, res) {
   let condition, specialty, zipCode;
 
   if (req.method === 'POST') {
-    ({ ids = [], condition, specialty, zipCode } = req.body || {});
+    const body = req.body || {};
+    ({ condition, specialty, zipCode } = body);
+    ids = body.ids;
+    if (!Array.isArray(ids)) {
+      return res.status(400).json({ error: 'ids must be an array of clinic id strings' });
+    }
   } else {
     const rawIds = req.query.ids || '';
     ids = rawIds
@@ -44,6 +49,10 @@ export async function compare(req, res) {
       .map((s) => s.trim())
       .filter(Boolean);
     ({ condition, specialty, zipCode } = req.query);
+  }
+
+  if (!ids.length) {
+    return res.status(400).json({ error: 'Provide at least one clinic id (use ids query or JSON body)' });
   }
 
   const result = compareClinics({ ids, condition, specialty, zipCode });

@@ -1,5 +1,6 @@
-// placeholder
 import { Router } from 'express';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import * as cardsController from '../controllers/cards.controller.js';
 
 const router = Router();
 
@@ -40,5 +41,7 @@ const router = Router();
  *                 planName: { type: string }
  *                 insurerName: { type: string }
  */
+
+router.post('/', asyncHandler(cardsController.parseCard));
 
 export default router;
