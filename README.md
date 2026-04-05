@@ -1,85 +1,60 @@
 # Careculator
 
-> "We don't just tell you where to go for care — we tell you where to go _based on what you can afford and what minimizes your financial risk_."
+> Find care that's right for you — ranked by real patient outcomes, not just distance or cost.
 
-Careculator is a smart healthcare cost and care matching tool. Users input their symptoms, location, and insurance (optional) and get ranked clinic recommendations with estimated costs, recovery scores, and financial risk breakdowns.
+Careculator is a healthcare cost and care matching tool. Users search for a medical condition, add their insurance plan, and get ranked clinic recommendations with estimated costs, recovery signals, and side-by-side comparisons — powered by real HRSA and CMS federal data.
 
 ---
 
 ## The Problem
 
-- People don't know where to go for care or how much it will cost
-- A bad decision can mean thousands in unexpected bills
-- Tools like Zocdoc help book appointments — but don't consider cost + insurance + urgency together
+People don't know where to go for care or how much it will cost. A bad decision can mean thousands in unexpected bills. Tools like Zocdoc help book appointments — but none factor in cost + insurance + clinical outcomes together.
 
 ## The Solution
 
-- **Smart Care + Cost Matching** — ranked clinic results with total cost estimates and recovery scores
-- **AI Financial + Medical Brain** — "Should I go to ER or urgent care?" answered with cost context
-- **Real Cost Breakdown** — insurance coverage estimate, out-of-pocket cost, worst-case scenario
-- **Financial Shock Alert** — warns when a choice costs 5x more than necessary
-- **What-if Simulator** — instant recalculation if insurance status changes
+| Feature | Description |
+|---|---|
+| Smart Matching | Ranked results using 9,300+ real HRSA clinics + 7,300+ CMS insurance plans |
+| Insurance-Aware | Cost estimates adjusted by your actual plan coverage tier |
+| Recovery Signals | Recovery speed, outcome quality, and treatment burden from patient data |
+| Side-by-Side Compare | Compare up to 3 clinics on every metric with cost bar charts |
 
 ---
 
-## Local Development
+## Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- npm
-
-### Running the full stack
-
-From the project root:
+**Prerequisites:** Node.js 18+, npm
 
 ```bash
 npm install      # installs concurrently (one-time)
 npm run dev      # starts backend + frontend together
 ```
 
-| Service      | URL                                 |
-| ------------ | ----------------------------------- |
-| Frontend     | http://localhost:5173               |
-| Backend API  | http://localhost:3001               |
-| Swagger UI   | http://localhost:3001/api/docs      |
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:3001 |
+| Swagger UI | http://localhost:3001/api/docs |
 | OpenAPI JSON | http://localhost:3001/api/docs.json |
 
-The Vite dev server proxies all `/api` requests to the backend automatically — no CORS issues during development.
-
-### Running individually
+Vite proxies `/api/*` to the backend in development — no CORS setup needed.
 
 ```bash
-# Backend only
-cd backend && npm run dev
-
-# Frontend only
-cd frontend && npm run dev
+# Run individually
+cd backend && npm run dev    # port 3001
+cd frontend && npm run dev   # port 5173
 ```
 
 ---
 
-## API Documentation
+## Tech Stack
 
-Interactive Swagger UI is available at **http://localhost:3001/api/docs** when the backend is running.
-
-The raw OpenAPI spec (importable into Postman or Insomnia) is at **http://localhost:3001/api/docs.json**.
-
-### Endpoints
-
-| Method | Path                           | Description                                      |
-| ------ | ------------------------------ | ------------------------------------------------ |
-| GET    | `/api/health`                  | Health check                                     |
-| GET    | `/api/clinics`                 | Search clinics (alias for `/api/clinics/search`) |
-| GET    | `/api/clinics/search`          | Search by condition, location, and preferences   |
-| GET    | `/api/clinics/recommendations` | Infer specialty + quick-search tag presets       |
-| GET    | `/api/clinics/compare`         | Compare clinics side-by-side                     |
-| POST   | `/api/clinics/compare`         | Compare clinics side-by-side (body payload)      |
-| GET    | `/api/clinics/:id`             | Get a single clinic by ID                        |
-| GET    | `/api/insurance`               | List supported insurance plans                   |
-| POST   | `/api/cards`                   | Upload and parse an insurance card               |
-
-To add docs for a new endpoint, add a `@swagger` JSDoc comment to its route file — the spec updates automatically on the next server start.
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
+| Backend | Node.js, Express, ES Modules, better-sqlite3 |
+| Database | SQLite (~286 MB — HRSA + CMS federal data) |
+| API Docs | swagger-jsdoc + swagger-ui-express (OpenAPI 3.0) |
 
 ---
 
@@ -87,67 +62,64 @@ To add docs for a new endpoint, add a `@swagger` JSDoc comment to its route file
 
 ```
 coverfind/
-├── package.json              # Root — runs both services via concurrently
-│
+├── package.json              # Root — concurrently runs both services
+├── render.yaml               # Render.com deployment config (backend)
 ├── backend/
-│   ├── index.js              # Express app entry point + Swagger UI mount
-│   ├── package.json
+│   ├── index.js              # Express entry point
 │   └── src/
-│       ├── swagger.js        # OpenAPI spec config (swagger-jsdoc)
-│       ├── config/
-│       │   └── index.js
-│       ├── controllers/
-│       │   ├── clinics.controller.js
-│       │   ├── insurance.controller.js
-│       │   └── cards.controller.js
-│       ├── middleware/
-│       │   ├── errorHandler.js
-│       │   └── validateRequest.js
-│       ├── models/
-│       │   ├── clinic.model.js
-│       │   └── provider.model.js
-│       ├── routes/           # @swagger annotations live here
-│       │   ├── clinics.routes.js
-│       │   ├── insurance.routes.js
-│       │   └── cards.routes.js
-│       ├── services/
-│       │   ├── dataLayer.service.js
-│       │   ├── hrsa.service.js
-│       │   ├── insurance.service.js
-│       │   └── npi.service.js
-│       └── utils/
-│           ├── csvLoader.js
-│           └── haversine.js
-│
+│       ├── config/           # DB path, pagination constants
+│       ├── controllers/      # HTTP request handlers
+│       ├── models/           # SQL query layer (prepared statements)
+│       ├── services/         # Business logic (search, scoring, insurance)
+│       ├── routes/           # Route definitions + Swagger annotations
+│       ├── middleware/        # Error handler + async wrapper
+│       ├── utils/            # Haversine distance, logger
+│       ├── data/             # SQLite database (tracked via Git LFS on deploy branch)
+│       └── scripts/          # Python DB build scripts
 ├── frontend/
-│   ├── index.html
-│   ├── vite.config.ts        # Vite + /api proxy to localhost:3001
-│   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   ├── package.json
+│   ├── vercel.json           # Vercel deployment config (SPA rewrites)
 │   └── src/
-│       ├── main.tsx          # React entry point
-│       ├── App.tsx
-│       ├── index.css         # Tailwind base styles
-│       ├── vite-env.d.ts
-│       └── components/
-│           ├── SearchForm.tsx
-│           ├── ResultsList.tsx
-│           ├── ClinicCard.tsx
-│           └── MapView.tsx
-│
-└── models/
-    └── pre-processing.ipynb  # Data pre-processing notebook
+│       ├── pages/            # HomePage, ResultsPage, ComparePage, SummaryPage
+│       ├── components/       # Navbar, Footer, GlowCard, PlanSelect, etc.
+│       ├── lib/api.ts        # Typed API client
+│       └── context/          # Dark/light theme provider
+└── models/                   # ML notebooks + pipeline
 ```
 
 ---
 
-## Tech Stack
+## Data Sources
 
-| Layer     | Technology                                      |
-| --------- | ----------------------------------------------- |
-| Frontend  | React 18, TypeScript, Vite, Tailwind CSS        |
-| Backend   | Node.js, Express, ES Modules                    |
-| API Docs  | swagger-jsdoc, swagger-ui-express (OpenAPI 3.0) |
-| Dev Tools | concurrently, node --watch                      |
+All data is real, sourced from US federal agencies:
+
+- **HRSA** — 9,323 Federally Qualified Health Centers with geocoded locations, specialties, and clinical outcome scores
+- **CMS** — 7,349 marketplace insurance plans, 1,759 provider networks, 54,205 service area mappings, and 3.4M age-banded premium rates
+
+No data is hardcoded or synthetic. Everything flows through SQL queries on the SQLite database.
+
+---
+
+## Deployment
+
+The `deploy` branch is production-ready. The SQLite database is tracked via **Git LFS** and ships with the repo automatically.
+
+### Backend → Render.com
+
+1. Go to [render.com](https://render.com) → **New → Blueprint** → connect the `deploy` branch
+2. Render reads `render.yaml` automatically and creates the Node.js web service
+3. Copy the deployed service URL (e.g. `https://careculator-api.onrender.com`)
+
+### Frontend → Vercel
+
+1. Go to [vercel.com](https://vercel.com) → **New Project** → import this repo, select the `deploy` branch
+2. Set **Root Directory** to `frontend`
+3. Add environment variable: `VITE_API_URL` = your Render service URL
+4. Deploy — Vercel handles the Vite build automatically
+
+> **Note:** On Render's free plan, the backend spins down after 15 minutes of inactivity. First request after idle may take ~30 seconds.
+
+---
+
+## Documentation
+
+For detailed technical documentation — architecture, data flow, API specifications, database schema, frontend component tree, and design decisions — see **[TECHNICAL.md](./TECHNICAL.md)**.
