@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Logo draw-in animation (stroke-dashoffset) ─────────────────────────── */
+@keyframes logo-stroke-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Outer silhouette: draws over 1.0 s starting immediately */
+.logo-draw-outer {
+  animation: logo-stroke-draw 1.0s cubic-bezier(0.4, 0, 0.2, 1) 0s forwards;
+}
+
+/* Inner C-arc: draws over 0.5 s, starts at 0.3 s */
+.logo-draw-inner {
+  animation: logo-stroke-draw 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+}
+
+/* Cross bar: draws over 0.25 s, starts at 0.7 s */
+.logo-draw-bar {
+  animation: logo-stroke-draw 0.25s cubic-bezier(0.4, 0, 0.2, 1) 0.7s forwards;
+}
+
 @layer base {
   body {
     @apply bg-slate-100 text-slate-900 antialiased dark:bg-[#0b1014] dark:text-slate-100;

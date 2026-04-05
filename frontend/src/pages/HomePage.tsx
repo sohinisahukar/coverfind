@@ -46,6 +46,7 @@ export default function HomePage() {
   const [providers, setProviders] = useState<InsuranceProvider[]>([]);
   const [providersLoading, setProvidersLoading] = useState(true);
   const [providersError, setProvidersError] = useState<string | null>(null);
+  const [providerSearch, setProviderSearch] = useState('');
   const [quickTags, setQuickTags] = useState<string[]>(FALLBACK_QUICK_TAGS);
 
   useEffect(() => {
@@ -142,6 +143,7 @@ export default function HomePage() {
   const selectProvider = (p: InsuranceProvider) => {
     setProviderId(p.id);
     setPolicyId(null);
+    setProviderSearch('');
     setStep('policy');
   };
 
@@ -350,16 +352,49 @@ export default function HomePage() {
                   </p>
                 )}
                 {!providersLoading && !providersError && (
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[min(50vh,20rem)] overflow-y-auto pr-1 -mr-1">
-                    {[...providers].sort((a, b) => a.name.localeCompare(b.name)).map(p => (
-                      <li key={p.id}>
-                        <button type="button" onClick={() => selectProvider(p)}
-                          className="w-full text-left px-4 py-3.5 rounded-xl border border-slate-200/90 dark:border-slate-600/80 bg-white/40 dark:bg-slate-950/20 hover:border-cf-teal/45 hover:bg-teal-50/30 dark:hover:bg-teal-950/20 transition-all text-ink text-sm font-medium">
-                          {p.name}
+                  <>
+                    <div className="relative">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Search insurer…"
+                        value={providerSearch}
+                        onChange={e => setProviderSearch(e.target.value)}
+                        className="home-search-input pl-9 pr-4 py-2.5 text-sm"
+                      />
+                      {providerSearch && (
+                        <button type="button" onClick={() => setProviderSearch('')}
+                          aria-label="Clear search"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-ink dark:hover:text-slate-100">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
-                      </li>
-                    ))}
-                  </ul>
+                      )}
+                    </div>
+                    {(() => {
+                      const filtered = [...providers]
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .filter(p => !providerSearch.trim() || p.name.toLowerCase().includes(providerSearch.toLowerCase().trim()));
+                      return filtered.length === 0 ? (
+                        <p className="text-sm text-muted text-center py-4">No insurers match &ldquo;{providerSearch}&rdquo;</p>
+                      ) : (
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[min(50vh,18rem)] overflow-y-auto pr-1 -mr-1">
+                          {filtered.map(p => (
+                            <li key={p.id}>
+                              <button type="button" onClick={() => selectProvider(p)}
+                                className="w-full text-left px-4 py-3.5 rounded-xl border border-slate-200/90 dark:border-slate-600/80 bg-white/40 dark:bg-slate-950/20 hover:border-cf-teal/45 hover:bg-teal-50/30 dark:hover:bg-teal-950/20 transition-all text-ink text-sm font-medium">
+                                {p.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
+                  </>
                 )}
               </>
             )}

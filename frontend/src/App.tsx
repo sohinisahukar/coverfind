@@ -11,19 +11,37 @@
  *   /compare/summary   -> SummaryPage  (card-grid overview)
  */
 
-import { Routes, Route } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import MedMotifBackground from './components/MedMotifBackground';
+import LogoSplash from './components/LogoSplash';
 import HomePage from './pages/HomePage';
 import ResultsPage from './pages/ResultsPage';
 import ComparePage from './pages/ComparePage';
 import SummaryPage from './pages/SummaryPage';
 
 export default function App() {
+  const location = useLocation();
+  // Start with splash visible — shows on initial load AND every route change.
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    // Re-trigger splash on every navigation.
+    setShowSplash(true);
+  }, [location.pathname]);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
   return (
     <div className="relative flex h-dvh max-h-dvh flex-col overflow-hidden">
+      {/* Logo transition splash — shown on load and every page change */}
+      {showSplash && <LogoSplash onComplete={handleSplashComplete} />}
+
       {/* Animated pill / capsule canvas background */}
       <MedMotifBackground />
 
