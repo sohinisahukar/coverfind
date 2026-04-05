@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { DB_PATH } from '../config/index.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Singleton read-only SQLite connection shared across all models.
@@ -21,11 +22,15 @@ let _db = null;
 export function getDb() {
   if (_db) return _db;
 
-  _db = new Database(DB_PATH, { readonly: true });
-
-  _db.pragma('cache_size  = -65536'); // 64 MB  (negative = kibibytes)
-  _db.pragma('temp_store  = MEMORY');
-  _db.pragma('mmap_size   = 268435456'); // 256 MB
-
-  return _db;
+  try {
+    _db = new Database(DB_PATH, { readonly: true });
+    _db.pragma('cache_size  = -65536'); // 64 MB  (negative = kibibytes)
+    _db.pragma('temp_store  = MEMORY');
+    _db.pragma('mmap_size   = 268435456'); // 256 MB
+    return _db;
+  } catch (err) {
+    logger.error(`Failed to open database at ${DB_PATH}: ${err.message}`);
+    logger.error('Run: cd backend && python3 src/scripts/build_database.py --out src/data/careculator.db');
+    throw new Error(`Database unavailable. Check that careculator.db exists at ${DB_PATH}`);
+  }
 }

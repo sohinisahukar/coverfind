@@ -136,9 +136,8 @@ Converts snake_case SQLite columns to camelCase. Parses JSON columns (`badges`, 
 SELECT coverage_tier AS tier, COUNT(*), AVG(monthly_premium), AVG(deductible), AVG(oop_max), AVG(coinsurance_pct)
 FROM insurance_plans [WHERE state = ?]
 GROUP BY coverage_tier
-ORDER BY avgPremium ASC
 ```
-Enriches with human-readable labels (Bronze/Silver/Gold/Platinum) and coverage percentages (60%/70%/80%/90%).
+Enriches with human-readable labels (Bronze/Silver/Gold/Platinum) and coverage percentages (60%/70%/80%/90%). Results are sorted in canonical tier order (Bronze→Silver→Gold→Platinum) in JavaScript, not by avgPremium, to ensure the correct display order regardless of dataset composition.
 
 **`getProvidersForWizard(state)`** — The most complex query. Returns `[{ id, name, policies }]` for the home page wizard.
 
@@ -186,7 +185,10 @@ The weight is inverted: `recoveryWeight = 1 - (priorityWeight / 100)`.
 
 **Default center:** ZIP 60616 (IIT / Bridgeport, Chicago, IL) — `41.8827, -87.6233`.
 
-**`getRecommendationForQuery(query)`** — Finds clinics matching the query, tallies their specialties, returns the most common specialty (excluding "Primary Care" if a more specific match exists).
+**`getRecommendationForQuery(query)`** — Finds clinics matching the query, tallies their specialties, and returns the best-fit specialty using a scored ranking:
+1. **Direct match wins** — specialties whose name overlaps with a query word (e.g. "dental" → "Dental")
+2. **Non-generic before generic** — "Behavioral Health" ranks above "Primary Care" / "Urgent Care" when counts tie
+3. **Highest count wins** as the final tiebreaker
 
 **`getQuickSearchTags()`** — Calls `getTopSpecialties(6)` once, caches the result.
 

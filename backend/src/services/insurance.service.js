@@ -25,7 +25,8 @@ export function listPlans(query = {}) {
 
   const result = _listPlans({ state, countyFips, planType, metalLevel, coverageTier, limit, offset });
 
-  const safeLimit  = Math.min(Math.max(1, Number(limit)  || 50), 500);
+  const rawLimit   = Number(limit);
+  const safeLimit  = Math.min((Number.isFinite(rawLimit) && rawLimit > 0) ? rawLimit : 50, 500);
   const safeOffset = Math.max(0, Number(offset) || 0);
 
   return {
@@ -64,11 +65,12 @@ export function getPlanById(planId) {
  * @returns {{ data: Object[], total: number, countyFips: string, pagination: Object }}
  */
 /**
- * Fetch age-banded rate rows for a plan.
+ * Fetch age-banded premium rate rows for a plan.
+ * Validates the plan exists first to avoid a slow scan of the 3.4M-row rates table.
  * Throws 404 if the plan ID doesn't exist.
  *
  * @param {string} planId
- * @param {Object} filters  { age?, ratingArea? }
+ * @param {{ age?: number, ratingArea?: string }} [filters]
  * @returns {Array}
  */
 export function getRatesForPlan(planId, filters = {}) {
@@ -109,7 +111,8 @@ export function getPlansForClinic(clinicId, { limit, offset } = {}) {
     throw err;
   }
 
-  const safeLimit  = Math.min(Math.max(1, Number(limit)  || 50), 500);
+  const rawLimit   = Number(limit);
+  const safeLimit  = Math.min((Number.isFinite(rawLimit) && rawLimit > 0) ? rawLimit : 50, 500);
   const safeOffset = Math.max(0, Number(offset) || 0);
 
   return {

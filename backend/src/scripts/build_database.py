@@ -161,7 +161,9 @@ TABLES = {
 INDEXES = [
     'CREATE INDEX IF NOT EXISTS idx_clinics_state       ON clinics(state)',
     'CREATE INDEX IF NOT EXISTS idx_clinics_county_fips ON clinics(county_fips)',
+    'CREATE INDEX IF NOT EXISTS idx_clinics_zip         ON clinics(zip)',
     'CREATE INDEX IF NOT EXISTS idx_plans_sa_issuer     ON insurance_plans(service_area_id, issuer_id)',
+    'CREATE INDEX IF NOT EXISTS idx_plans_state         ON insurance_plans(state)',
     'CREATE INDEX IF NOT EXISTS idx_sa_county_fips      ON service_areas(county_fips)',
     'CREATE INDEX IF NOT EXISTS idx_sa_sa_issuer        ON service_areas(service_area_id, issuer_id)',
     'CREATE INDEX IF NOT EXISTS idx_networks_issuer     ON networks(issuer_id)',

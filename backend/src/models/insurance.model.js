@@ -19,7 +19,6 @@ export function getTierSummary(state) {
     FROM insurance_plans
     ${where}
     GROUP BY coverage_tier
-    ORDER BY avgPremium ASC
   `).all(...params);
 
   // Enrich with human-readable labels and patient cost share
@@ -31,10 +30,16 @@ export function getTierSummary(state) {
     platinum: { label: 'Platinum', coveragePct: 90, color: 'sky' },
   };
 
-  return rows.map(r => ({
-    ...r,
-    ...(meta[r.tier] || { label: r.tier, coveragePct: 70, color: 'slate' }),
-  }));
+  // Always display in canonical coverage order (bronze→silver→gold→platinum),
+  // never sorted by avgPremium which varies with dataset composition.
+  const TIER_ORDER = { bronze: 0, silver: 1, gold: 2, premium: 3, platinum: 3 };
+
+  return rows
+    .map(r => ({
+      ...r,
+      ...(meta[r.tier] || { label: r.tier, coveragePct: 70, color: 'slate' }),
+    }))
+    .sort((a, b) => (TIER_ORDER[a.tier] ?? 99) - (TIER_ORDER[b.tier] ?? 99));
 }
 
 /**
@@ -164,22 +169,49 @@ export function getProvidersForWizard(state) {
     `)
     .all(...params);
 
-  // Build result
-  const map = new Map();
+  // Build per-issuer map first
+  const issuerMap = new Map();
   for (const row of typeRows) {
-    if (!map.has(row.issuerId)) {
+    if (!issuerMap.has(row.issuerId)) {
       const name = nameMap.get(row.issuerId) || String(row.issuerId);
-      map.set(row.issuerId, { id: `prov-${row.issuerId}`, name, policies: [] });
+      issuerMap.set(row.issuerId, { name, planType: row.planType, cnt: row.cnt, policies: [] });
     }
-    const entry = map.get(row.issuerId);
+    const entry = issuerMap.get(row.issuerId);
     if (row.planType) {
       entry.policies.push({
-        id: `ins-${row.issuerId}-${row.planType.toLowerCase()}`,
-        name: `${entry.name} ${row.planType}`,
         type: row.planType,
+        cnt: row.cnt,
       });
     }
   }
 
-  return [...map.values()];
+  // Deduplicate by brand name: merge issuers that share the same extracted brand.
+  // Keep the issuer with the most plans as the canonical ID; merge all plan types.
+  const byName = new Map(); // brandName → { issuerId, totalCnt, policies: Set<type> }
+  for (const [issuerId, entry] of issuerMap) {
+    const key = entry.name.toLowerCase().trim();
+    if (!byName.has(key)) {
+      byName.set(key, { issuerId, name: entry.name, totalCnt: 0, typeSet: new Set() });
+    }
+    const agg = byName.get(key);
+    for (const p of entry.policies) {
+      agg.typeSet.add(p.type);
+      agg.totalCnt += p.cnt;
+    }
+  }
+
+  // Sort by total plan count descending, take top 30
+  const sorted = [...byName.values()]
+    .sort((a, b) => b.totalCnt - a.totalCnt)
+    .slice(0, 30);
+
+  return sorted.map(({ issuerId, name, typeSet }) => ({
+    id: `prov-${issuerId}`,
+    name,
+    policies: [...typeSet].map(type => ({
+      id: `ins-${issuerId}-${type.toLowerCase()}`,
+      name: `${name} ${type}`,
+      type,
+    })),
+  }));
 }

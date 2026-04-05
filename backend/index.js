@@ -60,6 +60,8 @@ app.use(
  *                   type: string
  *                   example: ok
  */
+app.get('/', (_req, res) => res.redirect('/api/docs'));
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });

@@ -15,15 +15,34 @@ import { getDb } from '../services/dataLayer.service.js';
 // ---------------------------------------------------------------------------
 // Row mapper — canonical camelCase shape for the rest of the app
 // ---------------------------------------------------------------------------
+
+/** Normalize raw badges value (JSON object or array) → string tag array. */
+function normalizeBadges(raw) {
+  if (!raw) return [];
+  let o;
+  try { o = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return []; }
+  if (Array.isArray(o)) return o.map(String);
+  const tags = [];
+  if (o.bestValue)        tags.push('best-value');
+  if (o.topRecommendation) tags.push('top-rec');
+  if (o.highVisits)       tags.push('high-visits');
+  if (o.newInsurance)     tags.push('new');
+  return tags;
+}
+
+/** Normalize perVisitCostTier — DB may store "medium", frontend expects "moderate". */
+function normalizePerVisitTier(t) {
+  if (t === 'medium') return 'moderate';
+  return t;
+}
+
 function mapRow(row) {
-  let badges       = { bestValue: false, topRecommendation: false, highVisits: false, newInsurance: false };
   let specialties  = [];
   let keywords     = [];
   let highlightTags = [];
 
-  try { badges       = JSON.parse(row.badges);        } catch {}
-  try { specialties  = JSON.parse(row.specialties);   } catch {}
-  try { keywords     = JSON.parse(row.keywords);      } catch {}
+  try { specialties  = JSON.parse(row.specialties);    } catch {}
+  try { keywords     = JSON.parse(row.keywords);       } catch {}
   try { highlightTags = JSON.parse(row.highlight_tags); } catch {}
 
   return {
@@ -56,13 +75,13 @@ function mapRow(row) {
     // cost
     totalCostEstimate: row.total_cost_est,
     perVisitCost:     row.per_visit_cost,
-    perVisitCostTier: row.per_visit_tier,
+    perVisitCostTier: normalizePerVisitTier(row.per_visit_tier),
     // patient-facing
     patientSummary:   row.patient_summary,
     highlightTags,
     recoveryScore:    row.recovery_score,
     costScore:        row.cost_score,
-    badges,
+    badges:           normalizeBadges(row.badges),
   };
 }
 
@@ -212,14 +231,3 @@ export function getTopSpecialties(limit = 10) {
   return rows.map(r => r.specialty);
 }
 
-// ---------------------------------------------------------------------------
-// Legacy aliases — kept so existing service code doesn't break
-// ---------------------------------------------------------------------------
-
-export function getClinics() {
-  return queryClinics();
-}
-
-export function searchClinicsByKeyword(q) {
-  return queryClinics({ q });
-}

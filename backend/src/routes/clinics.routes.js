@@ -80,19 +80,7 @@ const router = Router();
  *         name: priorityWeight
  *         schema: { type: integer, minimum: 0, maximum: 100 }
  *         description: "0 = prioritize faster recovery, 100 = prioritize lower cost"
- *       - in: query
- *         name: useInsurance
- *         schema: { type: boolean }
- *       - in: query
- *         name: useOutOfPocket
- *         schema: { type: boolean }
- *       - in: query
- *         name: costSensitivity
- *         schema: { type: string }
- *       - in: query
- *         name: recoveryPreference
- *         schema: { type: string }
- *     responses:
+ *       responses:
  *       200:
  *         description: List of matching clinics
  *         content:

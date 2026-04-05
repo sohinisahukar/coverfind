@@ -36,11 +36,14 @@ export async function search(req, res) {
 
   const result = searchClinics(req.query);
 
-  // Return flat array — frontend (design-ui) expects Clinic[], not a pagination envelope
-  const clinics = Array.isArray(result) ? result : (result.data ?? []);
+  // searchClinics always returns { data, total, pagination, center, usingDefaultLocation }.
+  // The frontend expects a flat Clinic[] so we extract data here.
+  const clinics = result.data ?? [];
 
   logger.success(`clinics.search  → ${clinics.length} clinic(s) returned`);
 
+  // Tell the frontend when results are centered on the Chicago default, not the user's location
+  if (result.usingDefaultLocation) res.set('X-Default-Location', 'true');
   res.json(clinics);
 }
 

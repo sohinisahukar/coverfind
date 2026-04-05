@@ -25,11 +25,25 @@ import {
   type InsuranceTier,
 } from '../lib/api';
 
+/** Normalise a raw website string from the DB into a safe absolute URL.
+ *  Falls back to a Google search if the value is missing or unparseable. */
+function safeUrl(raw: string | undefined, fallbackName: string): string {
+  if (!raw) return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
+  const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try {
+    new URL(withProto); // throws if the domain is still malformed
+    return withProto;
+  } catch {
+    return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
+  }
+}
+
 export default function ResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const q = searchParams.get('q') || '';
-  const zip = searchParams.get('zip') || '60616';
+  const zip = searchParams.get('zip') || null;
+  const usingDefaultLocation = !zip && !searchParams.get('lat');
   const priority = Number(searchParams.get('priority') ?? 50);
   const flow = searchParams.get('flow') || 'cash';
   const coverageParam = searchParams.get('coverage');
@@ -74,7 +88,7 @@ export default function ResultsPage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetchClinics({ q, priorityWeight: priority, lat, lng })
+    fetchClinics({ q, priorityWeight: priority, maxDistanceMi: distance, lat, lng })
       .then(data => {
         setAllClinics(data);
       })
@@ -84,7 +98,7 @@ export default function ResultsPage() {
         toast.error(msg, { duration: 6000 });
       })
       .finally(() => setLoading(false));
-  }, [q, priority, lat, lng]);
+  }, [q, priority, distance, lat, lng]);
 
   useEffect(() => {
     if (!insuranceOpen || insuranceTiers.length > 0) return;
@@ -93,12 +107,7 @@ export default function ResultsPage() {
       .catch(() => {});
   }, [insuranceOpen, insuranceTiers.length]);
 
-  // Client-side distance filter — backend returns all clinics within 100mi,
-  // this slider narrows them further without a new API call.
-  const clinics = useMemo(
-    () => allClinics.filter(c => (c.distanceMiles ?? 0) <= distance),
-    [allClinics, distance],
-  );
+  const clinics = allClinics;
 
   const toggleCompare = (id: string) => {
     setComparing(prev =>
@@ -114,7 +123,7 @@ export default function ResultsPage() {
       <div className="md:hidden flex flex-col gap-1 px-4 py-2 border-b bg-results-mobile-bar">
         <div className="flex items-center justify-between gap-2">
           <span className="text-ink-muted text-sm font-medium min-w-0 truncate">
-            Results for: {q || 'All'} near {zip}
+            Results for: {q || 'All'}{zip ? ` near ${zip}` : ''}
           </span>
         <button
           type="button"
@@ -223,8 +232,13 @@ export default function ResultsPage() {
             >
               <div className="hidden md:block space-y-2">
                 <h2 className="text-xl font-semibold text-ink">
-                  Results for: {q || 'All care'} near {zip}
+                  Results for: {q || 'All care'}{zip ? ` near ${zip}` : ''}
                 </h2>
+                {usingDefaultLocation && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 rounded-lg px-3 py-1.5">
+                    No ZIP entered — showing results near Chicago, IL. Enter a ZIP on the home page to see local results.
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-2 mt-0.5">
                   <p className="text-muted text-sm">
                     Recommended care: <span className="text-cf-teal font-medium">{q || 'Primary Care'}</span> · Based on
@@ -307,7 +321,7 @@ export default function ResultsPage() {
                           clinic={clinic}
                           isComparing={comparing.includes(clinic.id)}
                           onToggleCompare={() => toggleCompare(clinic.id)}
-                          onViewDetails={() => navigate(`/compare?ids=${topClinic.id},${clinic.id}`)}
+                          onViewDetails={() => window.open(safeUrl(clinic.website, clinic.name), '_blank', 'noopener,noreferrer')}
                           insuranceTier={selectedTier}
                           coveragePct={insuranceContext?.coveragePct}
                         />

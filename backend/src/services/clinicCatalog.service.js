@@ -79,11 +79,19 @@ export function searchClinics(query = {}) {
   } = query;
 
   // Resolve user center — prefer explicit lat/lng (from ZIP geocode), fall back to default
-  const centerLat = query.lat != null ? Number(query.lat) : DEFAULT_LAT;
-  const centerLng = query.lng != null ? Number(query.lng) : DEFAULT_LNG;
+  const usingDefaultLocation = query.lat == null || query.lng == null;
+  const centerLat = !usingDefaultLocation ? Number(query.lat) : DEFAULT_LAT;
+  const centerLng = !usingDefaultLocation ? Number(query.lng) : DEFAULT_LNG;
 
   // ── 1. SQL filter ─────────────────────────────────────────────────────────
-  let clinics = queryClinics({ q, state });
+  const rawClinics = queryClinics({ q, state });
+  // Deduplicate by ID — the DB can contain duplicate rows for the same clinic
+  const seen = new Set();
+  let clinics = rawClinics.filter(c => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
 
   // ── 2. Attach distance ────────────────────────────────────────────────────
   clinics = clinics.map(c => ({
@@ -95,12 +103,12 @@ export function searchClinics(query = {}) {
 
   // ── 3. Distance filter ────────────────────────────────────────────────────
   const DEFAULT_MAX_DISTANCE_MI = 100;
-  const maxDist = (maxDistanceMi != null && maxDistanceMi !== '')
-    ? Number(maxDistanceMi)
+  const rawDist = (maxDistanceMi != null && maxDistanceMi !== '') ? Number(maxDistanceMi) : null;
+  // Clamp negative/invalid values to default — never skip the filter entirely
+  const maxDist = (rawDist != null && Number.isFinite(rawDist) && rawDist > 0)
+    ? rawDist
     : DEFAULT_MAX_DISTANCE_MI;
-  if (!isNaN(maxDist) && maxDist > 0) {
-    clinics = clinics.filter(c => c.distanceMiles <= maxDist);
-  }
+  clinics = clinics.filter(c => c.distanceMiles <= maxDist);
 
   // ── 4. Treatment burden filter ────────────────────────────────────────────
   if (treatmentBurden) {
@@ -108,7 +116,13 @@ export function searchClinics(query = {}) {
   }
 
   // ── 5. Weighted score sort ────────────────────────────────────────────────
-  // priorityWeight: 0 = pure recovery, 100 = pure cost
+  // priorityWeight (0–100) controls the recovery-vs-cost tradeoff:
+  //   0   = pure recovery-first  (fastest healing, best outcomes)
+  //   50  = equal weight (default)
+  //   100 = pure cost-first (lowest estimated total cost)
+  //
+  // Formula: score = (1 - w) * recoveryScore + w * costScore
+  // Both recoveryScore and costScore are 0–1 floats from the DB.
   const w = priorityWeight !== undefined
     ? Math.min(100, Math.max(0, Number(priorityWeight)))
     : 50;
@@ -123,7 +137,11 @@ export function searchClinics(query = {}) {
 
   // ── 6. Paginate ───────────────────────────────────────────────────────────
   const total      = clinics.length;
-  const safeLimit  = Math.min(Math.max(1, Number(limit)  || DEFAULT_LIMIT), MAX_LIMIT);
+  const rawLimit   = Number(limit);
+  const safeLimit  = Math.min(
+    (Number.isFinite(rawLimit) && rawLimit > 0) ? rawLimit : DEFAULT_LIMIT,
+    MAX_LIMIT
+  );
   const safeOffset = Math.max(0, Number(offset) || 0);
 
   return {
@@ -136,6 +154,7 @@ export function searchClinics(query = {}) {
       hasMore: safeOffset + safeLimit < total,
     },
     center: { lat: centerLat, lng: centerLng },
+    usingDefaultLocation,
   };
 }
 
@@ -204,13 +223,26 @@ export function getRecommendationForQuery(query = '') {
     }
   }
 
-  // Return the most common specialty (excluding "Primary Care" if there's
-  // a more specific match, since most clinics have Primary Care)
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  let specialty = sorted[0]?.[0] || 'Primary Care';
-  if (specialty === 'Primary Care' && sorted.length > 1) {
-    specialty = sorted[1][0];
-  }
+  // Score each specialty: prefer direct query-word matches, deprioritize generics.
+  // This prevents "Urgent Care" from winning when all specialties tie in count.
+  const GENERIC = new Set(['Primary Care', 'Urgent Care']);
+  const queryWords = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const scored = Object.entries(counts).map(([spec, cnt]) => {
+    const specWords = spec.toLowerCase().split(/\s+/);
+    const directMatch = queryWords.some(w =>
+      specWords.some(s => s.includes(w) || w.includes(s))
+    );
+    return { spec, cnt, directMatch, generic: GENERIC.has(spec) };
+  });
+  scored.sort((a, b) => {
+    // 1. Direct query matches first
+    if (a.directMatch !== b.directMatch) return a.directMatch ? -1 : 1;
+    // 2. Non-generic before generic
+    if (a.generic !== b.generic) return a.generic ? 1 : -1;
+    // 3. Higher count wins
+    return b.cnt - a.cnt;
+  });
+  const specialty = scored[0]?.spec || 'Primary Care';
 
   return { specialty, condition: query };
 }

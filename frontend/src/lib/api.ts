@@ -10,7 +10,7 @@
  *   fetchRecommendations()    -> GET /api/clinics/recommendations
  *   fetchInsuranceProviders() -> GET /api/insurance/providers
  *   fetchInsuranceTiers()     -> GET /api/insurance
- *   zipToCoords()             -> external zippopotam.us API
+ *   zipToCoords()             -> GET /api/geo/zip/:zip  (our backend, no external API)
  *
  * In dev, Vite's proxy (vite.config.ts) forwards /api/* to the backend.
  * Set VITE_API_URL when the UI is hosted separately from the API.
@@ -54,15 +54,25 @@ export interface Clinic {
   phone?: string;
 }
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 async function apiFetch<T>(url: string): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
   let res: Response;
   try {
-    res = await fetch(url);
+    res = await fetch(url, { signal: controller.signal });
   } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${FETCH_TIMEOUT_MS / 1000}s. Is the backend running?`);
+    }
     throw new Error(
       `Cannot reach backend at ${BASE}. Is the server running on port 3001? (${(err as Error).message})`
     );
   }
+  clearTimeout(timer);
 
   if (!res.ok) {
     let message = `Server error ${res.status} ${res.statusText}`;
@@ -103,6 +113,15 @@ function normalizePerVisitTier(t: unknown): 'low' | 'moderate' | 'high' {
   return 'moderate';
 }
 
+/**
+ * Normalize a raw clinic row from the backend into a typed Clinic object.
+ *
+ * The backend stores badges as a JSON object `{ bestValue: true, ... }` and
+ * perVisitCostTier as `"medium"` (legacy DB value). This function converts both
+ * to the shapes the UI expects: badges → string[], "medium" → "moderate".
+ *
+ * Called by fetchClinics and fetchCompare so every code path gets clean data.
+ */
 export function normalizeClinic(raw: Record<string, unknown>): Clinic {
   const base = raw as unknown as Clinic;
   return {
@@ -186,12 +205,8 @@ export async function fetchInsuranceTiers(state?: string): Promise<{ state: stri
 export async function zipToCoords(zip: string): Promise<{ lat: number; lng: number } | null> {
   if (!/^\d{5}$/.test(zip.trim())) return null;
   try {
-    const res = await fetch(`https://api.zippopotam.us/us/${zip.trim()}`);
-    if (!res.ok) return null;
-    const data = await res.json() as { places: Array<{ latitude: string; longitude: string }> };
-    const place = data.places?.[0];
-    if (!place) return null;
-    return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
+    const data = await apiFetch<{ lat: number; lng: number }>(`${BASE}/api/geo/zip/${zip.trim()}`);
+    return { lat: data.lat, lng: data.lng };
   } catch {
     return null;
   }

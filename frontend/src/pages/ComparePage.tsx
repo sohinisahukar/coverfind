@@ -15,6 +15,14 @@
  */
 
 import { useEffect, useState } from 'react';
+
+function safeUrl(raw: string | undefined, fallbackName: string): string {
+  if (!raw) return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
+  const withProto = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try { new URL(withProto); return withProto; } catch {
+    return `https://www.google.com/search?q=${encodeURIComponent(fallbackName)}`;
+  }
+}
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import StatusBadge from '../components/StatusBadge';
@@ -114,7 +122,7 @@ export default function ComparePage() {
                   <p className="text-subtle text-xs sm:text-sm leading-relaxed">{c.patientSummary}</p>
                   {c.website ? (
                     <a
-                      href={/^https?:\/\//i.test(c.website) ? c.website : `https://${c.website}`}
+                      href={safeUrl(c.website, c.name)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="btn-primary py-2.5 text-sm text-center"

@@ -104,6 +104,38 @@ No data is hardcoded or synthetic. Everything flows through SQL queries to the S
 
 ---
 
+## Environment Variables
+
+| Variable | Where | Default | Purpose |
+|----------|-------|---------|---------|
+| `VITE_API_URL` | `frontend/.env` | _(empty in dev)_ | Backend URL when frontend is hosted separately (e.g. Netlify → Railway). Leave unset for local dev — Vite's proxy handles it. |
+
+Example for production:
+```bash
+# frontend/.env.production
+VITE_API_URL=https://your-backend.railway.app
+```
+
+---
+
+## Troubleshooting
+
+**Port already in use**
+```bash
+lsof -ti:3001 | xargs kill -9   # backend
+lsof -ti:5173 | xargs kill -9   # frontend
+```
+
+**"Database unavailable" error on backend start**
+The SQLite file is not tracked in git (too large). You need to either:
+- Copy `careculator.db` to `backend/src/data/careculator.db`, or
+- Rebuild it: `cd backend && python3 src/scripts/build_database.py --out src/data/careculator.db`
+
+**ZIP lookup returns nothing**
+The geo endpoint derives coordinates from the clinics table. ZIPs with no HRSA clinics won't resolve. This affects rural ZIPs. The frontend falls back to the Chicago default in that case.
+
+---
+
 ## Documentation
 
 For detailed technical documentation covering architecture, data flow, API specifications, database schema, frontend component tree, and design decisions, see **[TECHNICAL.md](./TECHNICAL.md)**.

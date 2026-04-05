@@ -9,8 +9,11 @@
  * @returns {number} Distance in miles
  */
 export function haversine(lat1, lng1, lat2, lng2) {
-  const EARTH_RADIUS_MILES = 3958.8;
+  // Guard against NaN/Infinity coords — clinics with missing lat/lng produce
+  // nonsensical distances. Return Infinity so distance-cap filters exclude them.
+  if (![lat1, lng1, lat2, lng2].every(v => Number.isFinite(v))) return Infinity;
 
+  const EARTH_RADIUS_MILES = 3958.8;
   const toRad = (deg) => (deg * Math.PI) / 180;
 
   const dLat = toRad(lat2 - lat1);

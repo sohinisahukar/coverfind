@@ -88,8 +88,12 @@ const PLAN_SELECT = `
  * @returns {{ limit: number, offset: number }}
  */
 function paginate(limit, offset) {
+  const rawLimit = Number(limit);
   return {
-    limit:  Math.min(Math.max(1, Number(limit)  || DEFAULT_PAGE_SIZE), MAX_PAGE_SIZE),
+    limit:  Math.min(
+      (Number.isFinite(rawLimit) && rawLimit > 0) ? rawLimit : DEFAULT_PAGE_SIZE,
+      MAX_PAGE_SIZE
+    ),
     offset: Math.max(0, Number(offset) || 0),
   };
 }
