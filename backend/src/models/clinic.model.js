@@ -137,6 +137,54 @@ export function queryClinics({ q, state } = {}) {
   return rows.map(mapRow);
 }
 
+/**
+ * Fetch multiple clinics by an array of HRSA IDs (for the compare endpoint).
+ *
+ * @param {string[]} ids
+ * @returns {Object[]}
+ */
+export function getClinicsByIds(ids) {
+  if (!ids || ids.length === 0) return [];
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = getDb()
+    .prepare(`SELECT * FROM clinics WHERE id IN (${placeholders})`)
+    .all(ids);
+  return rows.map(mapRow);
+}
+
+/**
+ * Return the geographic centroid for a ZIP code derived from clinics in that ZIP.
+ * Returns null if the ZIP has no clinics in the DB.
+ *
+ * @param {string} zip  5-digit ZIP code
+ * @returns {{ zip, lat, lng, city, state, county, countyFips }|null}
+ */
+export function getZipCentroid(zip) {
+  const row = getDb()
+    .prepare(`
+      SELECT zip,
+             ROUND(AVG(lat), 6)  AS lat,
+             ROUND(AVG(lng), 6)  AS lng,
+             city, state, county, county_fips
+      FROM   clinics
+      WHERE  zip = ?
+      GROUP  BY zip
+    `)
+    .get(zip);
+
+  if (!row) return null;
+
+  return {
+    zip:        row.zip,
+    lat:        row.lat,
+    lng:        row.lng,
+    city:       row.city,
+    state:      row.state,
+    county:     row.county,
+    countyFips: row.county_fips,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Legacy aliases — kept so existing service code doesn't break
 // ---------------------------------------------------------------------------

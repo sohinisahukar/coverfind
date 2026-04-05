@@ -12,6 +12,7 @@ import {
   listPlans        as _listPlans,
   getRatesForPlan  as _getRatesForPlan,
 } from '../models/provider.model.js';
+import { getProviders as _getProviders } from '../models/insurance.model.js';
 
 /**
  * List insurance plans with optional filters and pagination.
@@ -79,6 +80,16 @@ export function getRatesForPlan(planId, filters = {}) {
     throw err;
   }
   return _getRatesForPlan(planId, filters);
+}
+
+/**
+ * Return unique insurance issuers with plan counts.
+ *
+ * @param {string|null} state
+ * @returns {Array}
+ */
+export function getProviders(state = null) {
+  return _getProviders(state || null);
 }
 
 export function getPlansForClinic(clinicId, { limit, offset } = {}) {

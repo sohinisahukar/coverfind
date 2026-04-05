@@ -24,10 +24,11 @@ export function getTierSummary(state) {
 
   // Enrich with human-readable labels and patient cost share
   const meta = {
-    bronze:  { label: 'Bronze',  coveragePct: 60, color: 'amber' },
-    silver:  { label: 'Silver',  coveragePct: 70, color: 'slate' },
-    gold:    { label: 'Gold',    coveragePct: 80, color: 'yellow' },
-    premium: { label: 'Platinum', coveragePct: 90, color: 'teal' },
+    bronze:   { label: 'Bronze',   coveragePct: 60, color: 'amber' },
+    silver:   { label: 'Silver',   coveragePct: 70, color: 'slate' },
+    gold:     { label: 'Gold',     coveragePct: 80, color: 'yellow' },
+    premium:  { label: 'Platinum', coveragePct: 90, color: 'sky' },
+    platinum: { label: 'Platinum', coveragePct: 90, color: 'sky' },
   };
 
   return rows.map(r => ({
@@ -44,4 +45,30 @@ export function getAvailableStates() {
     .prepare('SELECT DISTINCT state FROM insurance_plans WHERE state IS NOT NULL ORDER BY state')
     .all()
     .map(r => r.state);
+}
+
+/**
+ * Return unique insurance issuers (providers) with plan counts.
+ * Optionally filtered by state.
+ *
+ * @param {string|null} state  Two-letter state code or null for national
+ * @returns {Array<{ issuerId, issuerName, state, planCount }>}
+ */
+export function getProviders(state) {
+  const where = state ? 'WHERE UPPER(state) = UPPER(?)' : '';
+  const params = state ? [state] : [];
+
+  return db()
+    .prepare(`
+      SELECT
+        issuer_id                AS issuerId,
+        issuer_name              AS issuerName,
+        state,
+        COUNT(DISTINCT plan_id)  AS planCount
+      FROM insurance_plans
+      ${where}
+      GROUP BY issuer_id, issuer_name, state
+      ORDER BY planCount DESC, issuer_name ASC
+    `)
+    .all(...params);
 }
