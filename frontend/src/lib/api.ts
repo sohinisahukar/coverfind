@@ -29,7 +29,7 @@ export interface Clinic {
   treatmentBurden: 'low' | 'moderate' | 'high';
   totalCostEstimate: number;
   perVisitCost: number;
-  perVisitCostTier: 'low' | 'medium' | 'high';
+  perVisitCostTier: 'low' | 'moderate' | 'high';
   patientSummary: string;
   highlightTags: string[];
   recoveryScore: number;
@@ -91,10 +91,16 @@ function normalizePerVisitTier(t: unknown): 'low' | 'moderate' | 'high' {
 }
 
 export function normalizeClinic(raw: Record<string, unknown>): Clinic {
+  const base = raw as unknown as Clinic;
   return {
-    ...(raw as unknown as Clinic),
+    ...base,
     badges: normalizeBadges(raw.badges),
     perVisitCostTier: normalizePerVisitTier(raw.perVisitCostTier),
+    highlightTags: Array.isArray(raw.highlightTags)
+      ? (raw.highlightTags as unknown[]).map(String)
+      : Array.isArray(base.highlightTags)
+        ? base.highlightTags
+        : [],
   };
 }
 

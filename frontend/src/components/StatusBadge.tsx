@@ -11,7 +11,8 @@ type Status =
   | 'new';
 
 interface Props {
-  status: Status;
+  /** API-driven values may not match the preset union; unknown → moderate */
+  status: string;
   label?: string;
 }
 
@@ -41,12 +42,18 @@ const labels: Record<Status, string> = {
   new: 'NEW',
 };
 
+function resolveStatus(status: string): Status {
+  if (Object.prototype.hasOwnProperty.call(config, status)) return status as Status;
+  return 'moderate';
+}
+
 export default function StatusBadge({ status, label }: Props) {
-  const { className, icon } = config[status];
+  const key = resolveStatus(status);
+  const { className, icon } = config[key];
   return (
     <span className={`inline-flex items-center gap-1 ${className}`}>
       {icon && <span className="text-xs">{icon}</span>}
-      {label ?? labels[status]}
+      {label ?? labels[key]}
     </span>
   );
 }

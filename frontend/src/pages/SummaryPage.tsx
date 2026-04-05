@@ -118,7 +118,7 @@ function ProviderCard({ clinic, isTop, onSelect }: { clinic: Clinic; isTop: bool
         <Row label="Recovery Speed"><StatusBadge status={clinic.recoverySpeed} /></Row>
         <Row label="Outcome Quality"><StatusBadge status={clinic.outcomeQuality} /></Row>
         <Row label="Total Cost" value={`~$${clinic.totalCostEstimate.toLocaleString()}`} />
-        <Row label="Per Visit Cost"><StatusBadge status={clinic.perVisitCostTier === 'medium' ? 'moderate' : clinic.perVisitCostTier} /></Row>
+        <Row label="Per Visit Cost"><StatusBadge status={clinic.perVisitCostTier} /></Row>
       </div>
 
       {clinic.patientSummary && (
