@@ -49,6 +49,8 @@ export interface Clinic {
   costScore: number;
   /** Normalized from API object or string[] — use `.includes('best-value')` etc. */
   badges: string[];
+  /** 0–100 composite match score computed from displayed metrics + user priority */
+  compositeScore?: number;
   distanceMiles?: number;
   website?: string;
   phone?: string;

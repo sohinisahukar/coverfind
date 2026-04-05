@@ -338,7 +338,7 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
         </span>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-center border-t border-slate-200/90 dark:border-slate-700/85 pt-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center border-t border-slate-200/90 dark:border-slate-700/85 pt-4">
         <Stat label="Avg Visits" value={String(clinic.avgVisitsNeeded)} />
         <Stat label="Recovery" value={clinic.recoverySpeed} />
         <Stat label="Outcome" value={clinic.outcomeQuality} />
@@ -354,6 +354,12 @@ function ExpandedClinicCard({ clinic, isComparing, onToggleCompare, insuranceTie
             <p className="font-semibold text-ink text-sm">~${fullCost.toLocaleString()}</p>
           )}
         </div>
+        {clinic.compositeScore != null && (
+          <div>
+            <p className="text-muted text-xs mb-1">Match Score</p>
+            <p className="font-semibold text-cf-teal text-sm">{clinic.compositeScore}<span className="text-muted text-xs font-normal">/100</span></p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 pt-3 border-t border-slate-200/90 dark:border-slate-700/85 gap-3">
@@ -397,9 +403,16 @@ function CompactClinicCard({ clinic, isComparing, onToggleCompare, onViewDetails
     <div className="glass-card p-4">
       <div className="flex items-center justify-between mb-3">
         <span className="text-ink font-medium text-sm">{clinic.name}</span>
-        <span className="text-muted text-xs">
-          {clinic.distanceMiles != null ? `${clinic.distanceMiles} mi` : '—'}
-        </span>
+        <div className="flex items-center gap-2 shrink-0">
+          {clinic.compositeScore != null && (
+            <span className="text-[10px] font-semibold text-cf-teal bg-cf-teal/10 border border-cf-teal/25 rounded px-1.5 py-0.5">
+              {clinic.compositeScore}/100
+            </span>
+          )}
+          <span className="text-muted text-xs">
+            {clinic.distanceMiles != null ? `${clinic.distanceMiles} mi` : '—'}
+          </span>
+        </div>
       </div>
       <div className="space-y-2 text-sm">
         <div className="flex items-center justify-between">

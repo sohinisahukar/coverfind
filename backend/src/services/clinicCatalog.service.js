@@ -107,36 +107,82 @@ export function searchClinics(query = {}) {
     clinics = clinics.filter(c => c.treatmentBurden === treatmentBurden);
   }
 
-  // ── 5. Weighted score sort ────────────────────────────────────────────────
-  // priorityWeight: 0 = pure recovery, 100 = pure cost
+  // ── 5. Dynamic scoring from displayed fields ─────────────────────────────
+  //
+  // The DB's pre-computed recoveryScore/costScore are globally normalised and
+  // can give clinics invisible advantages not visible in the UI.  Instead we
+  // compute both dimensions from the exact same fields shown on the cards, so
+  // the ranking is always explainable by what users see.
+  //
+  // recoveryScore (0–1): weighted from speed + outcome quality + visits + burden
+  // costScore     (0–1): normalised within this filtered set  (cheapest = 1.0)
+
+  const SPEED_MAP   = { fast: 1.0, moderate: 0.5, slow: 0.0 };
+  const OUTCOME_MAP = { high: 1.0, medium: 0.5,   low: 0.0 };
+  const BURDEN_MAP  = { low:  1.0, moderate: 0.5,  high: 0.0 };
+
+  function calcRecovery(c) {
+    const speed   = SPEED_MAP[c.recoverySpeed]   ?? 0.5;
+    const outcome = OUTCOME_MAP[c.outcomeQuality] ?? 0.5;
+    // Fewer visits = better; scale 1 visit→1.0, 10 visits→0.0
+    const visits  = Math.max(0, 1 - ((c.avgVisitsNeeded || 5) - 1) / 9);
+    const burden  = BURDEN_MAP[c.treatmentBurden] ?? 0.5;
+    return speed * 0.35 + outcome * 0.40 + visits * 0.15 + burden * 0.10;
+  }
+
+  // Normalise per-visit cost within this filtered set only
+  const costs    = clinics.map(c => c.perVisitCost || 0).filter(x => x > 0);
+  const minCost  = costs.length ? Math.min(...costs) : 0;
+  const maxCost  = costs.length ? Math.max(...costs) : 1;
+  const costRange = maxCost - minCost || 1;
+
+  function calcCost(c) {
+    const cost = c.perVisitCost || maxCost;
+    return (maxCost - cost) / costRange; // cheapest → 1.0, priciest → 0.0
+  }
+
+  // priorityWeight: 0 = pure recovery-first, 100 = pure cost-first
   const w = priorityWeight !== undefined
     ? Math.min(100, Math.max(0, Number(priorityWeight)))
     : 50;
   const recoveryWeight = 1 - w / 100;
   const costWeight     = w / 100;
 
+  // Attach computed scores so the frontend can display them
+  clinics = clinics.map(c => ({
+    ...c,
+    _rScore: calcRecovery(c),
+    _cScore: calcCost(c),
+  }));
+
   clinics.sort((a, b) => {
-    const sA = recoveryWeight * (a.recoveryScore || 0) + costWeight * (a.costScore || 0);
-    const sB = recoveryWeight * (b.recoveryScore || 0) + costWeight * (b.costScore || 0);
+    const sA = recoveryWeight * a._rScore + costWeight * a._cScore;
+    const sB = recoveryWeight * b._rScore + costWeight * b._cScore;
     return sB - sA;
   });
 
-  // ── 5b. Dynamic badge reassignment ───────────────────────────────────────
-  // Clear pre-computed badges; assign based on actual ranked results.
-  // topRecommendation → rank-1 clinic (highest weighted score)
-  // bestValue         → clinic with highest costScore (cheapest per visit)
+  // Composite score 0–100 visible on each card; strip internal _rScore/_cScore
+  clinics = clinics.map(({ _rScore, _cScore, ...c }) => ({
+    ...c,
+    compositeScore: Math.round((recoveryWeight * _rScore + costWeight * _cScore) * 100),
+  }));
+
+  // ── 5b. Dynamic badge assignment ─────────────────────────────────────────
+  // topRecommendation → rank-1 (highest composite score)
+  // bestValue         → lowest perVisitCost (cheapest per visit)
+  // Never double-badge the same clinic.
   let bestValueIdx = 0;
   for (let i = 1; i < clinics.length; i++) {
-    if ((clinics[i].costScore || 0) > (clinics[bestValueIdx].costScore || 0)) {
+    if ((clinics[i].perVisitCost || Infinity) < (clinics[bestValueIdx].perVisitCost || Infinity)) {
       bestValueIdx = i;
     }
   }
+
   clinics = clinics.map((c, i) => ({
     ...c,
     badges: {
-      ...(c.badges || {}),
       topRecommendation: i === 0,
-      bestValue: i === bestValueIdx,
+      bestValue: i === bestValueIdx && i !== 0, // don't double-badge rank-1
     },
   }));
 
@@ -190,7 +236,14 @@ export function getClinicById(id) {
  * @returns {Object[]}
  */
 export function compareClinics(ids = []) {
-  return ids.map(id => _getClinicById(id)).filter(Boolean);
+  return ids
+    .map(id => _getClinicById(id))
+    .filter(Boolean)
+    .map(c => ({
+      ...c,
+      // Strip pre-computed DB badges — compare page has no ranked context.
+      badges: { topRecommendation: false, bestValue: false },
+    }));
 }
 
 // ---------------------------------------------------------------------------
