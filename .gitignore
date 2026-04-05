@@ -6,9 +6,10 @@ dist/
 build/
 *.local
 
-# Environment (keep .env.example tracked)
+# Environment (keep examples tracked)
 .env*
 !.env.example
+!.env.production.example
 
 # Logs & debug
 logs/
@@ -39,11 +40,12 @@ Desktop.ini
 # Optional: uncomment if you add TypeScript
 # *.tsbuildinfo
 
-# Database (too large for git — copy manually or run build_database.py)
-backend/data/careculator.db
+# Database WAL/SHM temp files — always ignore
 backend/data/careculator.db-shm
 backend/data/careculator.db-wal
-backend/src/data/careculator.db
 backend/src/data/careculator.db-shm
 backend/src/data/careculator.db-wal
-database/
+
+# The main .db file is tracked via Git LFS on the deploy branch.
+# On other branches it remains untracked (too large for regular git).
+# backend/data/careculator.db  ← intentionally NOT ignored here on deploy branch

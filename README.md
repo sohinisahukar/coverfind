@@ -104,6 +104,29 @@ No data is hardcoded or synthetic. Everything flows through SQL queries to the S
 
 ---
 
+## Deployment
+
+The `deploy` branch is production-ready. The SQLite database is tracked via **Git LFS** so it ships with the repo automatically.
+
+### Backend → Render.com
+
+1. Go to [render.com](https://render.com) → New → Blueprint → connect the `deploy` branch
+2. Render reads `render.yaml` automatically and creates the Node.js web service
+3. Once deployed, copy the service URL (e.g. `https://careculator-api.onrender.com`)
+
+### Frontend → Vercel
+
+1. Go to [vercel.com](https://vercel.com) → New Project → import this repo, select the `deploy` branch
+2. Set **Root Directory** to `frontend`
+3. Add environment variable: `VITE_API_URL` = your Render service URL from above
+4. Deploy — Vercel handles the Vite build automatically
+
+`vercel.json` is included in `frontend/` and configures client-side routing rewrites.
+
+> **Note:** On Render's free plan the backend spins down after 15 minutes of inactivity. First request after idle may take ~30 seconds to cold-start.
+
+---
+
 ## Documentation
 
 For detailed technical documentation covering architecture, data flow, API specifications, database schema, frontend component tree, and design decisions, see **[TECHNICAL.md](./TECHNICAL.md)**.
