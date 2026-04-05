@@ -1,3 +1,5 @@
+
+
 """
 build_database.py — Create careculator.db from clean CSV exports.
 
@@ -40,7 +42,7 @@ except ImportError:
 # Defaults
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_CSV_DIR = '/Users/whoseunassailable/Documents/database'
+DEFAULT_CSV_DIR = '/Users/likithashankar/Desktop/hmm/yoo/projects/coverfind/coverfind/database'
 DEFAULT_DB_OUT  = os.path.normpath(os.path.join(SCRIPT_DIR, '../../../data/careculator.db'))
 
 

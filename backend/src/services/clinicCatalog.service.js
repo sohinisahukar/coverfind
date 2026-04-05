@@ -1,12 +1,29 @@
-import { getClinicById as _getClinicById, searchClinicsByKeyword } from '../models/clinic.model.js';
+/**
+ * clinicCatalog.service.js
+ *
+ * Business-logic layer for clinic search and comparison.
+ * Coordinates between the SQL model (filtering) and JS post-processing
+ * (haversine distance, weighted scoring, pagination).
+ *
+ * Separation of concerns:
+ *   clinic.model     → SQL filtering (keyword, state)
+ *   this service     → distance computation, scoring, sorting, pagination
+ *   clinics.controller → HTTP concerns only
+ */
+
+import { queryClinics, getClinicById as _getClinicById } from '../models/clinic.model.js';
 import { haversine } from '../utils/haversine.js';
 
-// Default center coordinates (zip 60616, near IIT/Bridgeport, Chicago)
+// Default center: ZIP 60616 (IIT / Bridgeport, Chicago, IL)
 const DEFAULT_LAT = 41.8827;
 const DEFAULT_LNG = -87.6233;
 
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT     = 200;
+
 /**
  * Quick-search preset tags shown in the recommendations UI.
+ * Populated from the backend so the frontend stays in sync.
  */
 export const QUICK_SEARCH_TAGS = [
   'Primary Care',
@@ -17,75 +34,119 @@ export const QUICK_SEARCH_TAGS = [
   "Women's Health",
 ];
 
+// ---------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------
+
 /**
- * Search clinics based on a query object.
+ * Search and rank clinics.
  *
- * @param {Object} query
- * @param {string}  [query.q]              - Free-text search term
- * @param {string}  [query.location]       - Location string or zip code (alias: zip)
- * @param {string}  [query.zip]            - Zip code (alias for location)
- * @param {number}  [query.maxDistanceMi]  - Maximum distance in miles from center
- * @param {string}  [query.treatmentBurden] - "low" | "moderate" | "high"
- * @param {number}  [query.priorityWeight] - 0 = recovery priority, 100 = cost priority
- * @param {boolean} [query.useInsurance]
- * @param {boolean} [query.useOutOfPocket]
- * @returns {Array<Object>} Sorted array of clinic objects with distanceMiles added
+ * Pipeline:
+ *   1. SQL: keyword filter (name / specialties / keywords) + optional state
+ *   2. JS:  compute haversine distance from user's coordinates
+ *   3. JS:  filter by maxDistanceMi
+ *   4. JS:  filter by treatmentBurden
+ *   5. JS:  weighted score sort (recoveryScore ↔ costScore via priorityWeight)
+ *   6. JS:  paginate with limit / offset
+ *
+ * @param {Object}  query
+ * @param {string}  [query.q]               Free-text search term
+ * @param {string}  [query.state]           Two-letter state code
+ * @param {number}  [query.lat]             User latitude (from ZIP geocode)
+ * @param {number}  [query.lng]             User longitude (from ZIP geocode)
+ * @param {number}  [query.maxDistanceMi]   Distance cap in miles
+ * @param {string}  [query.treatmentBurden] low | moderate | high
+ * @param {number}  [query.priorityWeight]  0 = recovery-first, 100 = cost-first
+ * @param {number}  [query.limit]           Default 50, max 200
+ * @param {number}  [query.offset]          Default 0
+ *
+ * @returns {{
+ *   data:       Object[],
+ *   total:      number,
+ *   pagination: { total, limit, offset, hasMore },
+ *   center:     { lat, lng }
+ * }}
  */
 export function searchClinics(query = {}) {
   const {
     q,
+    state,
     maxDistanceMi,
     treatmentBurden,
     priorityWeight,
+    limit,
+    offset,
   } = query;
 
-  const weight = priorityWeight !== undefined ? Number(priorityWeight) : 50;
-  const centerLat = query.lat ? Number(query.lat) : DEFAULT_LAT;
-  const centerLng = query.lng ? Number(query.lng) : DEFAULT_LNG;
+  // Resolve user center — prefer explicit lat/lng (from ZIP geocode), fall back to default
+  const centerLat = query.lat != null ? Number(query.lat) : DEFAULT_LAT;
+  const centerLng = query.lng != null ? Number(query.lng) : DEFAULT_LNG;
 
-  let clinics = searchClinicsByKeyword(q);
+  // ── 1. SQL filter ─────────────────────────────────────────────────────────
+  let clinics = queryClinics({ q, state });
 
-  // Attach distance to each clinic
-  clinics = clinics.map((clinic) => ({
-    ...clinic,
+  // ── 2. Attach distance ────────────────────────────────────────────────────
+  clinics = clinics.map(c => ({
+    ...c,
     distanceMiles: parseFloat(
-      haversine(centerLat, centerLng, clinic.lat, clinic.lng).toFixed(2)
+      haversine(centerLat, centerLng, c.lat, c.lng).toFixed(2)
     ),
   }));
 
-  // Distance filter
-  if (maxDistanceMi !== undefined && maxDistanceMi !== null && maxDistanceMi !== '') {
+  // ── 3. Distance filter ────────────────────────────────────────────────────
+  if (maxDistanceMi != null && maxDistanceMi !== '') {
     const maxDist = Number(maxDistanceMi);
-    if (!isNaN(maxDist)) {
-      clinics = clinics.filter((clinic) => clinic.distanceMiles <= maxDist);
+    if (!isNaN(maxDist) && maxDist > 0) {
+      clinics = clinics.filter(c => c.distanceMiles <= maxDist);
     }
   }
 
-  // Treatment burden filter
+  // ── 4. Treatment burden filter ────────────────────────────────────────────
   if (treatmentBurden) {
-    clinics = clinics.filter(
-      (clinic) => clinic.treatmentBurden === treatmentBurden
-    );
+    clinics = clinics.filter(c => c.treatmentBurden === treatmentBurden);
   }
 
-  // Scoring and sort
-  const recoveryWeight = 1 - weight / 100;
-  const costWeight = weight / 100;
+  // ── 5. Weighted score sort ────────────────────────────────────────────────
+  // priorityWeight: 0 = pure recovery, 100 = pure cost
+  const w = priorityWeight !== undefined
+    ? Math.min(100, Math.max(0, Number(priorityWeight)))
+    : 50;
+  const recoveryWeight = 1 - w / 100;
+  const costWeight     = w / 100;
 
   clinics.sort((a, b) => {
-    const scoreA = recoveryWeight * a.recoveryScore + costWeight * a.costScore;
-    const scoreB = recoveryWeight * b.recoveryScore + costWeight * b.costScore;
-    return scoreB - scoreA;
+    const sA = recoveryWeight * (a.recoveryScore || 0) + costWeight * (a.costScore || 0);
+    const sB = recoveryWeight * (b.recoveryScore || 0) + costWeight * (b.costScore || 0);
+    return sB - sA;
   });
 
-  return clinics;
+  // ── 6. Paginate ───────────────────────────────────────────────────────────
+  const total      = clinics.length;
+  const safeLimit  = Math.min(Math.max(1, Number(limit)  || DEFAULT_LIMIT), MAX_LIMIT);
+  const safeOffset = Math.max(0, Number(offset) || 0);
+
+  return {
+    data: clinics.slice(safeOffset, safeOffset + safeLimit),
+    total,
+    pagination: {
+      total,
+      limit:   safeLimit,
+      offset:  safeOffset,
+      hasMore: safeOffset + safeLimit < total,
+    },
+    center: { lat: centerLat, lng: centerLng },
+  };
 }
 
+// ---------------------------------------------------------------------------
+// Single clinic
+// ---------------------------------------------------------------------------
+
 /**
- * Find a clinic by its ID. Throws a 404 error if not found.
+ * Fetch a clinic by ID. Throws a 404-tagged error if not found.
  *
- * @param {string} id - Clinic ID
- * @returns {Object} Clinic object
+ * @param {string} id
+ * @returns {Object}
  */
 export function getClinicById(id) {
   const clinic = _getClinicById(id);
@@ -97,40 +158,43 @@ export function getClinicById(id) {
   return clinic;
 }
 
-/**
- * Compare multiple clinics by their IDs.
- *
- * @param {Object} params
- * @param {string[]} params.ids       - Array of clinic IDs to compare
- * @param {string}  [params.condition]
- * @param {string}  [params.specialty]
- * @param {string}  [params.zipCode]
- * @returns {Array<Object>} Array of clinic objects in the order of requested IDs
- */
-export function compareClinics({ ids = [] } = {}) {
-  return ids.map((id) => _getClinicById(id)).filter(Boolean);
-}
+// ---------------------------------------------------------------------------
+// Compare
+// ---------------------------------------------------------------------------
 
 /**
- * Infer a specialty from a free-text query string.
+ * Fetch multiple clinics by ID in the order they were requested.
+ * Silently drops IDs that don't resolve.
  *
- * @param {string} query - User's free-text query
+ * @param {string[]} ids
+ * @returns {Object[]}
+ */
+export function compareClinics(ids = []) {
+  return ids.map(id => _getClinicById(id)).filter(Boolean);
+}
+
+// ---------------------------------------------------------------------------
+// Recommendations
+// ---------------------------------------------------------------------------
+
+/**
+ * Infer a specialty from a free-text query for the recommendations endpoint.
+ *
+ * @param {string} query
  * @returns {{ specialty: string, condition: string }}
  */
 export function getRecommendationForQuery(query = '') {
   const q = query.toLowerCase();
 
-  let specialty = 'General Care';
+  let specialty = 'Primary Care';
 
-  if (/knee|back|physical therapy|rehab/.test(q)) {
-    specialty = 'Physical Therapy';
-  } else if (/skin|rash|dermatol/.test(q)) {
-    specialty = 'Dermatology';
-  } else if (/teeth|dental|cleaning/.test(q)) {
-    specialty = 'Dental';
-  } else if (/urgent|emergency|cut|fever/.test(q)) {
-    specialty = 'Urgent Care';
-  }
+  if      (/knee|back|shoulder|physical.?therapy|rehab|joint/.test(q))  specialty = 'Physical Therapy';
+  else if (/skin|rash|acne|eczema|dermatol/.test(q))                    specialty = 'Dermatology';
+  else if (/teeth|tooth|dental|cleaning|cavity|gum/.test(q))            specialty = 'Dental';
+  else if (/urgent|emergency|cut|fever|sprain/.test(q))                 specialty = 'Urgent Care';
+  else if (/child|pedi|kid|infant|baby/.test(q))                        specialty = 'Pediatrics';
+  else if (/mental|anxiety|depress|behav|psych|counsel/.test(q))        specialty = 'Behavioral Health';
+  else if (/women|prenatal|obgyn|ob-gyn|pregnancy/.test(q))             specialty = "Women's Health";
 
   return { specialty, condition: query };
 }

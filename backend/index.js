@@ -8,6 +8,7 @@ import { swaggerSpec } from './src/swagger.js';
 import clinicsRoutes from './src/routes/clinics.routes.js';
 import insuranceRoutes from './src/routes/insurance.routes.js';
 import cardsRoutes from './src/routes/cards.routes.js';
+import geoRoutes from './src/routes/geo.routes.js';
 import { errorHandler } from './src/middleware/errorHandler.js';
 import { logger } from './src/utils/logger.js';
 
@@ -56,6 +57,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/clinics', clinicsRoutes);
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/cards', cardsRoutes);
+app.use('/api/geo', geoRoutes);
 
 // Swagger UI — available at http://localhost:3001/api/docs
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

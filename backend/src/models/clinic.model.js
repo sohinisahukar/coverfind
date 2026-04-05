@@ -1,94 +1,150 @@
-import Database from 'better-sqlite3';
-import { fileURLToPath } from 'url';
-import path from 'path';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.resolve(__dirname, '../../data/careculator.db');
-
-let _db = null;
-function db() {
-  if (!_db) _db = new Database(DB_PATH, { readonly: true });
-  return _db;
-}
-
 /**
- * Map a raw DB row to the Clinic shape expected by the frontend.
+ * clinic.model.js
+ *
+ * Data-access layer for the clinics table.
+ * All keyword filtering is pushed into SQLite so we never load the full
+ * 9,323-row table into JS memory just to do string matching.
+ *
+ * Query construction is dynamic (term count varies) but better-sqlite3
+ * caches compiled statements by SQL string, so distinct term counts
+ * (0, 1, 2, …) each compile once and are reused on subsequent calls.
  */
+
+import { getDb } from '../services/dataLayer.service.js';
+
+// ---------------------------------------------------------------------------
+// Row mapper — canonical camelCase shape for the rest of the app
+// ---------------------------------------------------------------------------
 function mapRow(row) {
-  let badges = { bestValue: false, topRecommendation: false, highVisits: false, newInsurance: false };
-  let specialties = [];
-  let keywords = [];
+  let badges       = { bestValue: false, topRecommendation: false, highVisits: false, newInsurance: false };
+  let specialties  = [];
+  let keywords     = [];
   let highlightTags = [];
 
-  try { badges = JSON.parse(row.badges); } catch {}
-  try { specialties = JSON.parse(row.specialties); } catch {}
-  try { keywords = JSON.parse(row.keywords); } catch {}
+  try { badges       = JSON.parse(row.badges);        } catch {}
+  try { specialties  = JSON.parse(row.specialties);   } catch {}
+  try { keywords     = JSON.parse(row.keywords);      } catch {}
   try { highlightTags = JSON.parse(row.highlight_tags); } catch {}
 
   return {
-    id: row.id,
-    name: row.name,
+    // identity
+    id:               row.id,
+    name:             row.name,
+    orgName:          row.org_name,
+    // location — needed by the frontend map and insurance county join
+    address:          row.address          || undefined,
+    city:             row.city,
+    state:            row.state,
+    zip:              row.zip,
+    lat:              row.lat,
+    lng:              row.lng,
+    county:           row.county           || undefined,
+    countyFips:       row.county_fips      || undefined,
+    // contact
+    phone:            row.phone            || undefined,
+    website:          row.website          || undefined,
+    // specialty / search
     specialties,
     keywords,
-    lat: row.lat,
-    lng: row.lng,
-    zip: row.zip,
-    avgVisitsNeeded: row.avg_visits,
-    recoverySpeed: row.recovery_speed,
-    outcomeQuality: row.outcome_quality,
-    treatmentBurden: row.treatment_burden,
+    // clinical outcome signals
+    avgVisitsNeeded:  row.avg_visits,
+    recoverySpeed:    row.recovery_speed,
+    recoveryDays:     row.recovery_days,
+    outcomeQuality:   row.outcome_quality,
+    treatmentBurden:  row.treatment_burden,
+    burdenScore:      row.burden_score,
+    // cost
     totalCostEstimate: row.total_cost_est,
-    perVisitCost: row.per_visit_cost,
+    perVisitCost:     row.per_visit_cost,
     perVisitCostTier: row.per_visit_tier,
-    patientSummary: row.patient_summary,
+    // patient-facing
+    patientSummary:   row.patient_summary,
     highlightTags,
-    recoveryScore: row.recovery_score,
-    costScore: row.cost_score,
+    recoveryScore:    row.recovery_score,
+    costScore:        row.cost_score,
     badges,
-    website: row.website || undefined,
-    phone: row.phone || undefined,
   };
 }
 
-/**
- * Load all clinics from SQLite.
- * @returns {Array<Object>} Clinic objects
- */
-export function getClinics() {
-  const rows = db().prepare('SELECT * FROM clinics').all();
-  return rows.map(mapRow);
-}
+// ---------------------------------------------------------------------------
+// SQL helpers
+// ---------------------------------------------------------------------------
 
 /**
- * Get a single clinic by ID.
+ * Build WHERE clause + params array for a multi-term keyword search.
+ * Each term must match at least one of: name, specialties, keywords.
+ * Multiple terms are ANDed — "knee pain" → must match both "knee" AND "pain".
+ *
+ * @param {string[]} terms    Lowercased search terms
+ * @param {string}  [state]   Two-letter state code filter
+ * @returns {{ clause: string, params: Array }}
+ */
+function buildWhere(terms, state) {
+  const clauses = [];
+  const params  = [];
+
+  for (const term of terms) {
+    const pat = `%${term}%`;
+    clauses.push(
+      `(LOWER(name) LIKE ? OR LOWER(specialties) LIKE ? OR LOWER(keywords) LIKE ?)`
+    );
+    params.push(pat, pat, pat);
+  }
+
+  if (state) {
+    clauses.push('UPPER(state) = ?');
+    params.push(state.toUpperCase());
+  }
+
+  return {
+    clause: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '',
+    params,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Get a single clinic by its HRSA ID.
+ *
  * @param {string} id
  * @returns {Object|null}
  */
 export function getClinicById(id) {
-  const row = db().prepare('SELECT * FROM clinics WHERE id = ?').get(id);
+  const row = getDb().prepare('SELECT * FROM clinics WHERE id = ?').get(id);
   return row ? mapRow(row) : null;
 }
 
 /**
- * Search clinics by keyword using SQLite LIKE against name, specialties, keywords.
- * Returns all clinics if no query is given.
- * @param {string} [q]
- * @returns {Array<Object>}
+ * Core query function — SQL-level keyword + state filtering.
+ * Distance filtering and score-based sorting happen in the service layer
+ * after haversine distances are computed.
+ *
+ * @param {Object} opts
+ * @param {string}  [opts.q]      Free-text search (split into terms, ANDed)
+ * @param {string}  [opts.state]  Two-letter state code
+ * @returns {Object[]}  Raw clinic objects (pre-distance)
  */
+export function queryClinics({ q, state } = {}) {
+  const terms = q && q.trim()
+    ? q.trim().toLowerCase().split(/\s+/).filter(Boolean)
+    : [];
+
+  const { clause, params } = buildWhere(terms, state);
+  const rows = getDb().prepare(`SELECT * FROM clinics ${clause}`).all(params);
+  return rows.map(mapRow);
+}
+
+// ---------------------------------------------------------------------------
+// Legacy aliases — kept so existing service code doesn't break
+// ---------------------------------------------------------------------------
+
+export function getClinics() {
+  return queryClinics();
+}
+
 export function searchClinicsByKeyword(q) {
-  if (!q || !q.trim()) {
-    return getClinics();
-  }
-  const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const rows = db().prepare('SELECT * FROM clinics').all();
-  return rows
-    .filter(row => {
-      const name = (row.name || '').toLowerCase();
-      const specs = (row.specialties || '').toLowerCase();
-      const kws = (row.keywords || '').toLowerCase();
-      return terms.some(t =>
-        name.includes(t) || specs.includes(t) || kws.includes(t)
-      );
-    })
-    .map(mapRow);
+  return queryClinics({ q });
 }
