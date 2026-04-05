@@ -1,11 +1,16 @@
+/**
+ * insurance.routes.js — Route definitions for /api/insurance/*.
+ *
+ * IMPORTANT: Named routes (providers, tiers, states, plans) MUST be
+ * registered before the /:id catch-all to prevent Express from
+ * greedily matching "providers" as a plan ID.
+ */
+
 import { Router } from 'express';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import * as insuranceController from '../controllers/insurance.controller.js';
 
 const router = Router();
-
-// All named routes MUST be registered before /:id to prevent Express
-// from greedily matching them as plan IDs.
 
 // GET /api/insurance               → tier summary { state, tiers }   (used by frontend sidebar)
 // GET /api/insurance/providers     → UI catalog array [ {id,name,policies} ] (used by home wizard)

@@ -186,6 +186,33 @@ export function getZipCentroid(zip) {
 }
 
 // ---------------------------------------------------------------------------
+// Specialties
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the most common specialties across all clinics, ordered by frequency.
+ * Specialties are stored as JSON arrays in the specialties column.
+ *
+ * @param {number} [limit=10]  Max specialties to return
+ * @returns {string[]}
+ */
+export function getTopSpecialties(limit = 10) {
+  // SQLite doesn't have native JSON array unnest, so we pull all distinct
+  // specialty values via a JSON each() virtual table.
+  const rows = getDb()
+    .prepare(`
+      SELECT j.value AS specialty, COUNT(*) AS cnt
+      FROM clinics, json_each(clinics.specialties) AS j
+      GROUP BY j.value
+      ORDER BY cnt DESC
+      LIMIT ?
+    `)
+    .all(limit);
+
+  return rows.map(r => r.specialty);
+}
+
+// ---------------------------------------------------------------------------
 // Legacy aliases — kept so existing service code doesn't break
 // ---------------------------------------------------------------------------
 

@@ -1,3 +1,12 @@
+/**
+ * swagger.js — OpenAPI 3.0 specification generated from JSDoc annotations.
+ *
+ * swagger-jsdoc scans route files for @swagger comments and merges them
+ * with the schema definitions below. The resulting spec powers:
+ *   - Swagger UI at /api/docs
+ *   - Raw JSON at /api/docs.json (importable into Postman / Insomnia)
+ */
+
 import swaggerJsdoc from 'swagger-jsdoc';
 
 const options = {

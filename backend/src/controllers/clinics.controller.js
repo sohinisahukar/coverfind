@@ -1,9 +1,17 @@
+/**
+ * clinics.controller.js — HTTP handlers for clinic endpoints.
+ *
+ * Each function maps to a route in clinics.routes.js.
+ * Business logic is delegated to clinicCatalog.service.js;
+ * this layer only handles HTTP concerns (parsing params, sending JSON).
+ */
+
 import {
   searchClinics,
   getClinicById,
   compareClinics,
   getRecommendationForQuery,
-  QUICK_SEARCH_TAGS,
+  getQuickSearchTags,
 } from '../services/clinicCatalog.service.js';
 import { logger } from '../utils/logger.js';
 
@@ -49,7 +57,7 @@ export async function recommendations(req, res) {
   const inferred = getRecommendationForQuery(query);
   logger.success(`clinics.recommendations  → specialty="${inferred.specialty}"`);
 
-  res.json({ ...inferred, quickTags: QUICK_SEARCH_TAGS });
+  res.json({ ...inferred, quickTags: getQuickSearchTags() });
 }
 
 /**
