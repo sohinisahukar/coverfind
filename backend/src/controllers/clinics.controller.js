@@ -28,12 +28,12 @@ export async function search(req, res) {
 
   const result = searchClinics(req.query);
 
-  logger.success(
-    `clinics.search  → ${result.data.length} clinic(s) returned ` +
-    `(${result.total} total) center=(${result.center.lat},${result.center.lng})`
-  );
+  // Return flat array — frontend (design-ui) expects Clinic[], not a pagination envelope
+  const clinics = Array.isArray(result) ? result : (result.data ?? []);
 
-  res.json(result);
+  logger.success(`clinics.search  → ${clinics.length} clinic(s) returned`);
+
+  res.json(clinics);
 }
 
 /**

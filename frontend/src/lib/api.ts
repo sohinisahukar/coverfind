@@ -1,4 +1,19 @@
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:3001';
+/**
+ * In dev, use same-origin `/api/...` so Vite's proxy (vite.config.ts) forwards to the backend.
+ * Set VITE_API_URL when the UI is hosted separately from the API.
+ */
+function apiBase(): string {
+  const env = import.meta.env.VITE_API_URL as string | undefined;
+  if (env != null && String(env).trim() !== '') {
+    return String(env).replace(/\/$/, '');
+  }
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  return 'http://localhost:3001';
+}
+
+const BASE = apiBase();
 
 export interface Clinic {
   id: string;
@@ -14,17 +29,13 @@ export interface Clinic {
   treatmentBurden: 'low' | 'moderate' | 'high';
   totalCostEstimate: number;
   perVisitCost: number;
-  perVisitCostTier: 'low' | 'medium' | 'high';
+  perVisitCostTier: 'low' | 'moderate' | 'high';
   patientSummary: string;
   highlightTags: string[];
   recoveryScore: number;
   costScore: number;
-  badges: {
-    bestValue: boolean;
-    topRecommendation: boolean;
-    highVisits: boolean;
-    newInsurance: boolean;
-  };
+  /** Normalized from API object or string[] — use `.includes('best-value')` etc. */
+  badges: string[];
   distanceMiles?: number;
   website?: string;
   phone?: string;
@@ -54,42 +65,89 @@ async function apiFetch<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export interface ClinicsResult {
-  data:       Clinic[];
-  total:      number;
-  pagination: { total: number; limit: number; offset: number; hasMore: boolean };
-  center:     { lat: number; lng: number };
+/** `clinics.json` uses badge objects; UI expects string tags for `.includes()`. */
+function normalizeBadges(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map(String);
+  }
+  if (raw && typeof raw === 'object') {
+    const o = raw as Record<string, boolean>;
+    const tags: string[] = [];
+    if (o.bestValue) tags.push('best-value');
+    if (o.topRecommendation) tags.push('top-rec');
+    if (o.highVisits) tags.push('high-visits');
+    if (o.newInsurance) tags.push('new');
+    return tags;
+  }
+  return [];
+}
+
+/** API uses `medium`; StatusBadge uses `moderate`. */
+function normalizePerVisitTier(t: unknown): 'low' | 'moderate' | 'high' {
+  const s = String(t || '').toLowerCase();
+  if (s === 'medium') return 'moderate';
+  if (s === 'low' || s === 'moderate' || s === 'high') return s;
+  return 'moderate';
+}
+
+export function normalizeClinic(raw: Record<string, unknown>): Clinic {
+  const base = raw as unknown as Clinic;
+  return {
+    ...base,
+    badges: normalizeBadges(raw.badges),
+    perVisitCostTier: normalizePerVisitTier(raw.perVisitCostTier),
+    highlightTags: Array.isArray(raw.highlightTags)
+      ? (raw.highlightTags as unknown[]).map(String)
+      : Array.isArray(base.highlightTags)
+        ? base.highlightTags
+        : [],
+  };
 }
 
 export async function fetchClinics(params: {
   q?: string;
-  state?: string;
   priorityWeight?: number;
   maxDistanceMi?: number;
   treatmentBurden?: string;
   lat?: number;
   lng?: number;
-  limit?: number;
-  offset?: number;
 }): Promise<Clinic[]> {
   const qs = new URLSearchParams();
-  if (params.q)                          qs.set('q',               params.q);
-  if (params.state)                      qs.set('state',           params.state);
+  if (params.q) qs.set('q', params.q);
   if (params.priorityWeight !== undefined) qs.set('priorityWeight', String(params.priorityWeight));
-  if (params.maxDistanceMi  !== undefined) qs.set('maxDistanceMi',  String(params.maxDistanceMi));
-  if (params.treatmentBurden)            qs.set('treatmentBurden', params.treatmentBurden);
-  if (params.lat !== undefined)          qs.set('lat',             String(params.lat));
-  if (params.lng !== undefined)          qs.set('lng',             String(params.lng));
-  if (params.limit  !== undefined)       qs.set('limit',           String(params.limit));
-  if (params.offset !== undefined)       qs.set('offset',          String(params.offset));
+  if (params.maxDistanceMi !== undefined) qs.set('maxDistanceMi', String(params.maxDistanceMi));
+  if (params.treatmentBurden) qs.set('treatmentBurden', params.treatmentBurden);
+  if (params.lat !== undefined) qs.set('lat', String(params.lat));
+  if (params.lng !== undefined) qs.set('lng', String(params.lng));
+  const data = await apiFetch<Record<string, unknown>[]>(`${BASE}/api/clinics/search?${qs}`);
+  return Array.isArray(data) ? data.map((row) => normalizeClinic(row)) : [];
+}
 
-  // Backend now returns { data, total, pagination, center } — extract data for backwards compat
-  const result = await apiFetch<ClinicsResult>(`${BASE}/api/clinics/search?${qs}`);
-  return result.data;
+export type InsurancePolicy = { id: string; name: string; type: string };
+
+export type InsuranceProvider = {
+  id: string;
+  name: string;
+  policies: InsurancePolicy[];
+};
+
+export async function fetchInsuranceProviders(): Promise<InsuranceProvider[]> {
+  const data = await apiFetch<unknown>(`${BASE}/api/insurance/providers`);
+  return Array.isArray(data) ? (data as InsuranceProvider[]) : [];
+}
+
+export function findProviderById(
+  providers: InsuranceProvider[],
+  id: string,
+): InsuranceProvider | undefined {
+  return providers.find(p => p.id === id);
 }
 
 export async function fetchCompare(ids: string[]): Promise<Clinic[]> {
-  return apiFetch<Clinic[]>(`${BASE}/api/clinics/compare?ids=${ids.join(',')}`);
+  const rows = await apiFetch<Record<string, unknown>[]>(
+    `${BASE}/api/clinics/compare?ids=${encodeURIComponent(ids.join(','))}`,
+  );
+  return Array.isArray(rows) ? rows.map((row) => normalizeClinic(row)) : [];
 }
 
 export async function fetchRecommendations(): Promise<{ specialty: string; condition: string; quickTags: string[] }> {
@@ -108,29 +166,19 @@ export interface InsuranceTier {
 }
 
 export async function fetchInsuranceTiers(state?: string): Promise<{ state: string | null; tiers: InsuranceTier[] }> {
-  const qs = state ? `?state=${state}` : '';
-  return apiFetch(`${BASE}/api/insurance/tiers${qs}`);
+  const q = state ? `?state=${encodeURIComponent(state)}` : '';
+  return apiFetch(`${BASE}/api/insurance${q}`);
 }
 
-export interface GeoResult {
-  zip: string;
-  lat: number;
-  lng: number;
-  city: string;
-  state: string;
-  county: string;
-  countyFips: string;
-}
-
-/**
- * Resolve a ZIP code to coordinates using our own backend geo endpoint.
- * No external API dependency — sourced from the clinic DB.
- * Returns null if the ZIP is not found or invalid.
- */
-export async function zipToCoords(zip: string): Promise<GeoResult | null> {
+export async function zipToCoords(zip: string): Promise<{ lat: number; lng: number } | null> {
   if (!/^\d{5}$/.test(zip.trim())) return null;
   try {
-    return await apiFetch<GeoResult>(`${BASE}/api/geo/zip/${zip.trim()}`);
+    const res = await fetch(`https://api.zippopotam.us/us/${zip.trim()}`);
+    if (!res.ok) return null;
+    const data = await res.json() as { places: Array<{ latitude: string; longitude: string }> };
+    const place = data.places?.[0];
+    if (!place) return null;
+    return { lat: parseFloat(place.latitude), lng: parseFloat(place.longitude) };
   } catch {
     return null;
   }
